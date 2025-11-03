@@ -19,7 +19,7 @@ public class Mizushi extends Jujut{
     boolean kai_hit = false;
     boolean sure_hit=false;
     public Mizushi(Jobject jobject, String spe_name, String type, boolean rct, int power, int time, char target) {
-        super(jobject, spe_name, type, rct, power, 17, target);
+        super(jobject, spe_name, type, rct, power, time, target);
         kai_hit = false;
         if(rct){
             j_entities=new ArrayList<>();
@@ -27,7 +27,7 @@ public class Mizushi extends Jujut{
             use_power=power;
             fixable=false;
             setcurrent(4,100);
-            this.time=10;
+            this.time=time;
 
         }
         else{
@@ -36,6 +36,7 @@ public class Mizushi extends Jujut{
             }
             use_power=5;
             fixable=false;
+            this.time=17;
             setcurrent(4,100);
             j_entities=new ArrayList<Entity>();
         }
@@ -63,7 +64,7 @@ public class Mizushi extends Jujut{
     public void run() {
         if(reversecurse){
             maintick();
-            if(time<4){
+            if(time<6){
                 for(Entity target : j_entities){
                     for(int rr=0; rr<3; rr++){
                         Vector r_offset = new Vector(Math.random() - 0.5, Math.random() - 0.5, Math.random() - 0.5).multiply(2);
@@ -77,13 +78,13 @@ public class Mizushi extends Jujut{
                     }
                 }
             }
-            if(time==2){
+            if(time==0){
                 for(Entity target : j_entities){
                     Jobject targetj = PaperJJK.getjobject(target);
                     target.getWorld().playSound(target.getLocation(), Sound.ITEM_TRIDENT_THROW, SoundCategory.PLAYERS, 1.5F, 0.5F);
                     if(targetj==null){
                         if(target instanceof LivingEntity living){
-                            jobject.damaget(living,'j',Math.pow(jobject.curseenergy,0.15)+use_power/10,false,"hachi",sure_hit);
+                            jobject.damaget(living,'j',Math.pow(jobject.curseenergy,0.10)+use_power/10,false,"hachi",sure_hit);
                             living.addScoreboardTag("hachi");
                         }
                         else if(!target.getType().equals(EntityType.BLOCK_DISPLAY)){
@@ -126,11 +127,11 @@ public class Mizushi extends Jujut{
                     if(direction.length()<0.001){
                         direction = new Vector(Math.random()-0.5,Math.random()-0.5, Math.random()-0.5);
                     }
+                    t_location.setDirection(t_location.getDirection().add(new Vector(Math.random()-0.5,Math.random()-0.5, Math.random()-0.5).multiply(0.1)));
                     direction = direction.normalize().subtract(t_location.getDirection().clone().multiply(direction.dot(t_location.getDirection())));
                     t_location.getWorld().playSound(t_location, Sound.ENTITY_PLAYER_ATTACK_SWEEP, SoundCategory.PLAYERS, 0.1F, 0.8F);
                 }
                 if(time<=16){
-
                     for(int rp=0; rp<10; rp++){
                         t_location.add(t_location.getDirection().normalize().multiply(0.4));
                         for (double r = ((double) -use_power / 8 )*(17-time)/7-1; r <= ((double) use_power / 8)*(17-time)/7+1; r+=0.5) {

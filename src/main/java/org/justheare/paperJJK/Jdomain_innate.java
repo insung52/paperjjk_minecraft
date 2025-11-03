@@ -7,19 +7,13 @@ import org.bukkit.Sound;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
-import org.bukkit.block.Furnace;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.util.Vector;
-import org.checkerframework.checker.units.qual.A;
 
-import java.awt.print.Paper;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.logging.Logger;
 
 public class Jdomain_innate extends Jdomain{
     boolean isexpanded=false;

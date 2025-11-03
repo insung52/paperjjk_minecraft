@@ -10,7 +10,6 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
-import java.util.List;
 
 public class Mizushi_domain extends Jdomain_innate{
 
@@ -79,7 +78,8 @@ class Mizushi_effector extends Jdomain_effector{
                     }*/
                         }
                         else if(Math.random()>0.2){
-                            tlocation.createExplosion(domain.owner.player,5,true);
+                            tlocation.createExplosion(domain.owner.player,5,PaperJJK.rule_breakblock,PaperJJK.rule_breakblock);
+
                         }
                         tick1+=1.2;
                         if (tick1 >= ((domain.onground)?(domain.current_radius * 4):(domain.current_radius*8))) {
@@ -129,20 +129,22 @@ class Mizushi_effector extends Jdomain_effector{
                                 rx=1;
                             }
                             Location tlocation = domain.nb_location.clone().add(ry, rx-4, rz);
-                            if(tlocation.getBlock().isLiquid()){
-                                tlocation.getBlock().setType(Material.AIR);
-                            }
-                            else if(!tlocation.getBlock().isEmpty()){
-                                if(tlocation.getBlock().getType().getHardness()<4){
-                                    if(tlocation.getBlock().getType().getHardness()>-1){
+                            if(PaperJJK.rule_breakblock){
+                                if(tlocation.getBlock().isLiquid()){
+                                    tlocation.getBlock().setType(Material.AIR);
+                                }
+                                else if(!tlocation.getBlock().isEmpty()){
+                                    if(tlocation.getBlock().getType().getHardness()<4){
+                                        if(tlocation.getBlock().getType().getHardness()>-1){
+                                            tlocation.getBlock().setType(Material.AIR);
+                                        }
+                                    }
+                                    else if(Math.random()<=0.1/tlocation.getBlock().getType().getHardness()){
                                         tlocation.getBlock().setType(Material.AIR);
                                     }
                                 }
-                                else if(Math.random()<=0.1/tlocation.getBlock().getType().getHardness()){
-                                    tlocation.getBlock().setType(Material.AIR);
-                                }
                             }
-                            else if(Math.random()>Math.pow(domain.current_radius*1.0/200.0,0.01)){
+                            if(tlocation.getBlock().isPassable()&&Math.random()>Math.pow(domain.current_radius*1.0/200.0,0.01)){
                                 Particle.DustOptions dust=new Particle.DustOptions(Color.WHITE, (float) (200 - domain.current_radius) /50);
                                 tlocation.getWorld().spawnParticle(Particle.DUST, tlocation, 1, 0, 0, 0, 1, dust, true);
                             }
@@ -171,19 +173,22 @@ class Mizushi_effector extends Jdomain_effector{
                         for (double rr = -9; rr <=  9; rr+=1) {
                             //t_location.clone().add(direction.multiply(r));
                             Location s_location= ss_location.clone().add(r_vector.multiply(rr/5));
-                            if(s_location.getBlock().isLiquid()){
-                                s_location.getBlock().setType(Material.AIR);
-                            }
-                            else if(!s_location.getBlock().isEmpty()){
-                                if(s_location.getBlock().getType().getHardness()<5){
-                                    if(s_location.getBlock().getType().getHardness()>-1){
+                            if(PaperJJK.rule_breakblock){
+                                if(s_location.getBlock().isLiquid()){
+                                    s_location.getBlock().setType(Material.AIR);
+                                }
+                                else if(!s_location.getBlock().isEmpty()){
+                                    if(s_location.getBlock().getType().getHardness()<5){
+                                        if(s_location.getBlock().getType().getHardness()>-1){
+                                            s_location.getBlock().setType(Material.AIR);
+                                        }
+                                    }
+                                    else if(Math.random()<=1/s_location.getBlock().getType().getHardness()){
                                         s_location.getBlock().setType(Material.AIR);
                                     }
                                 }
-                                else if(Math.random()<=1/s_location.getBlock().getType().getHardness()){
-                                    s_location.getBlock().setType(Material.AIR);
-                                }
                             }
+
                             s_location.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, s_location, 1, 0, 0, 0, 0, null, false);
                             s_location.getWorld().spawnParticle(Particle.DUST, s_location, 1, 0, 0, 0, 0, dark_dust2, false);
                         }
@@ -202,7 +207,7 @@ class Mizushi_effector extends Jdomain_effector{
                                 continue;
                             }
                             if(living.getLocation().distance(domain.nb_location)< domain.nb_range){
-                                Mizushi mizushi = new Mizushi(domain.owner,"","",true,1,20,'a');
+                                Mizushi mizushi = new Mizushi(domain.owner,"","",true,1, (int) (Math.random() * 7)+5,'a');
                                 mizushi.show=false;
                                 mizushi.sure_hit=true;
                                 mizushi.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin,mizushi,1,1);

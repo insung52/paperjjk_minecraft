@@ -25,7 +25,7 @@ public class Mizushi_fuga extends Jujut{
         delay=20;
     }
     void hit(){
-        location.createExplosion(user,(float) (use_power/25+2),true);
+        location.createExplosion(user,(float) (use_power/25+2),PaperJJK.rule_breakblock,PaperJJK.rule_breakblock);
 
         if(jobject.innate_domain.isexpanded&&jobject.innate_domain.no_border_on&&jobject.innate_domain.nb_location.distance(location)<jobject.innate_domain.nb_range){
             jobject.innate_domain.set_special();

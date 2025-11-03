@@ -90,7 +90,7 @@ class Mizushi_effect extends Domain_effect{
                     }*/
                 }
                 else if(Math.random()>0.2){
-                    tlocation.createExplosion(domain.jobject.player,5,true);
+                    tlocation.createExplosion(domain.jobject.player,5,PaperJJK.rule_breakblock,PaperJJK.rule_breakblock);
                 }
                 tick1+=1.2;
                 if (tick1 >= ((onground)?(current_radius * 4):(current_radius*8))) {

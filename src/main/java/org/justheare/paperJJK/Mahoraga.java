@@ -3,6 +3,8 @@ package org.justheare.paperJJK;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.Attribute;
 import org.bukkit.command.ConsoleCommandSender;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
@@ -33,8 +35,21 @@ public class Mahoraga extends Jujut{
         super(jobject, spe_name, type, rct, power, time, target);
         ConsoleCommandSender console = Bukkit.getServer().getConsoleSender();
         // 명령어 문자열 생성
-        String command = "execute as " + user.getUniqueId() + " at @s run attribute @s minecraft:generic.scale base set 2.1";
-        Bukkit.dispatchCommand(console, command);
+        //String command = "execute as " + user.getUniqueId() + " at @s run attribute @s minecraft:scale base set 2.1";
+        //Bukkit.dispatchCommand(console, command);
+        LivingEntity entity = (LivingEntity) user;
+        AttributeInstance scaleAttr = entity.getAttribute(Attribute.SCALE);
+        AttributeInstance frAttr = entity.getAttribute(Attribute.FOLLOW_RANGE);
+        AttributeInstance shAttr = entity.getAttribute(Attribute.STEP_HEIGHT);
+        if (scaleAttr != null) {
+            scaleAttr.setBaseValue(2.1);
+        }
+        if (frAttr != null) {
+            frAttr.setBaseValue(100);
+        }
+        if (shAttr != null) {
+            shAttr.setBaseValue(5);
+        }
         float v1=user.getYaw();
         float v2=user.getPitch();
         user.setRotation(0,0);
@@ -103,13 +118,13 @@ public class Mahoraga extends Jujut{
                         power-=power*adapt_list_power.get(r)/20.0;
 
                     }
-                    else if(target.equals("LAVA")||target.equals("FIRE")||target.equals("FIRE_TICK")||target.equals("CONTACT")||target.equals("SUFFOCATION")||target.equals("HOT_FLOOR")){
+                    else if(target.equals("LIGHTNING")||target.equals("LAVA")||target.equals("FIRE")||target.equals("FIRE_TICK")||target.equals("CONTACT")||target.equals("SUFFOCATION")||target.equals("HOT_FLOOR")){
                         adapt_list_num.set(r,adapt_list_num.get(r)+40);
                         power-=power*adapt_list_power.get(r)/7.0;
-                        power = power;
+                        //PaperJJK.log(String.valueOf(adapt_list_num.get(r)));
+
                     }
                     else if(target.equals("ao")){
-                        PaperJJK.log(String.valueOf(adapt_list_num.get(r)));
                         power-=power*adapt_list_power.get(r)/7.0;
                     }
                     else if(target.equals("aka")){
@@ -120,6 +135,7 @@ public class Mahoraga extends Jujut{
                         power-=power*adapt_list_power.get(r)/7.0;
                     }
                     else {
+                        //PaperJJK.log(String.valueOf(adapt_list_num.get(r)));
                         adapt_list_num.set(r,adapt_list_num.get(r)+80);
                         power-=power*adapt_list_power.get(r)/7.0;
                     }
@@ -157,7 +173,7 @@ public class Mahoraga extends Jujut{
         jobject.curseenergy=jobject.max_curseenergy;
         adapt_anim=11;
         for(int r =0; r<adapt_list.size(); r++){
-            adapt_list_num.set(r, adapt_list_num.get(r)/3);
+            adapt_list_num.set(r, adapt_list_num.get(r)/2);
         }
         user.getWorld().playSound(user.getLocation(), Sound.BLOCK_ENDER_CHEST_OPEN,10F,0.8F);
         user.getWorld().playSound(user.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_CLOSE_SHUTTER,10F,0.8F);
@@ -171,6 +187,24 @@ public class Mahoraga extends Jujut{
                 if(power>5){
                     living.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE,999999,1,false));
                 }
+            }
+            if(target.equals("ENTITY_ATTACK")||target.equals("ENTITY_SWEEP_ATTACK")||target.equals("PROJECTILE")){
+
+                LivingEntity entity = (LivingEntity) user;
+                AttributeInstance scaleAttr = entity.getAttribute(Attribute.SCALE);
+                assert scaleAttr != null;
+                if(scaleAttr.getBaseValue()<10){
+                    scaleAttr.setBaseValue(scaleAttr.getBaseValue() * 1.02);
+                    AttributeInstance attackAttr = entity.getAttribute(Attribute.ATTACK_DAMAGE);
+                    if (attackAttr != null) {
+                        attackAttr.setBaseValue(attackAttr.getBaseValue()+0.02);
+                    }
+                    AttributeInstance mhAttr = entity.getAttribute(Attribute.MAX_HEALTH);
+                    if (mhAttr != null) {
+                        mhAttr.setBaseValue(mhAttr.getBaseValue()+2);
+                    }
+                }
+
             }
             living.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH,5,100,false));
             living.setFireTicks(0);
@@ -223,7 +257,10 @@ public class Mahoraga extends Jujut{
             if(m_target!=null){
                 if(!m_target.isDead()){
                     jump_time=20;
-                    user.getLocation().add(0,3,0).createExplosion(user,4,false);
+                    LivingEntity entity = (LivingEntity) user;
+                    AttributeInstance scaleAttr = entity.getAttribute(Attribute.SCALE);
+                    assert scaleAttr != null;
+                    user.getLocation().add(0,entity.getEyeHeight(),0).createExplosion(user, (float) (2+scaleAttr.getValue()*0.5),false,PaperJJK.rule_breakblock);
                 }
             }
             time=0;
@@ -231,7 +268,10 @@ public class Mahoraga extends Jujut{
         if(jump_time>0&&jobject.infinity_stun_tick==0){
             jump_time--;
             if(Math.random()<0.25){
-                user.getLocation().add(0,3,0).createExplosion(user,4,false);
+                LivingEntity entity = (LivingEntity) user;
+                AttributeInstance scaleAttr = entity.getAttribute(Attribute.SCALE);
+                assert scaleAttr != null;
+                user.getLocation().add(0,3,0).createExplosion(user, (float) (2+scaleAttr.getValue()*0.5),false,PaperJJK.rule_breakblock);
                 user.setVelocity(m_target.getLocation().add(((LivingEntity)user).getEyeLocation().multiply(-1)).toVector().normalize().multiply(4));
             }
             /*
@@ -247,7 +287,7 @@ public class Mahoraga extends Jujut{
 
         }
         if(user instanceof LivingEntity living){
-            if(living.getHealth()<=0){
+            if(living.getHealth()<=0||living.isDead()){
                 disables();
             }
         }
@@ -261,6 +301,4 @@ public class Mahoraga extends Jujut{
             }
         }
     }
-
-
 }

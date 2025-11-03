@@ -1,6 +1,8 @@
 package org.justheare.paperJJK;
 
-import org.bukkit.*;
+import org.bukkit.Bukkit;
+import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -9,12 +11,17 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionEffectTypeCategory;
+import org.bukkit.scoreboard.Scoreboard;
+import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public final class PaperJJK extends JavaPlugin {
+    static boolean rule_breakblock=true;
+    static boolean rule_hud = true;
+    static boolean hud_off = false;
     static PaperJJK jjkplugin;
     static ArrayList<Jobject> jobjects=new ArrayList<>();
     static ArrayList<Jdomain_expand> expanded_domains=new ArrayList<>();
@@ -59,6 +66,13 @@ public final class PaperJJK extends JavaPlugin {
         }
         return -1;
     }
+    public static int getStrengthAmplifier(LivingEntity entity) {
+        PotionEffect effect = entity.getPotionEffect(PotionEffectType.STRENGTH);
+        if (effect != null) {
+            return effect.getAmplifier()+1; // 0 = Strength I
+        }
+        return 0; // 포션 없음
+    }
     public static List<Jujut> getjujuts(){
         List<Jujut> list=new ArrayList<Jujut>();
         for(int r=0; r<jobjects.size(); r++){
@@ -73,7 +87,7 @@ public final class PaperJJK extends JavaPlugin {
             }
         }
         Jobject jo = PaperJJK.getjobject(entity);
-        if(jo!=null&&jo.naturaltech.equals("mahoraga")&&jo.jujuts.get(0) instanceof Mahoraga mahoraga){
+        if(jo!=null&&jo.naturaltech.equals("mahoraga")&&!jo.jujuts.isEmpty()&&jo.jujuts.get(0) instanceof Mahoraga mahoraga){
             return mahoraga.pre_adapt(target,"curse",1);
         }
         else if(jo!=null&&jo.naturaltech.equals("infinity")&&!jo.jujuts.isEmpty()&&jo.jujuts.get(0) instanceof Infinity_passive){
@@ -83,6 +97,20 @@ public final class PaperJJK extends JavaPlugin {
             return power;
         }
     }
+    public static boolean is_black_flash(Entity attacker, Entity victim){
+        Jobject attacker_jobject = getjobject(attacker);
+        if(attacker_jobject!=null){
+            if(attacker_jobject.curseenergy>200){
+                if(Math.random()<=attacker_jobject.black_flash_num){
+                    attacker_jobject.black_flash_tick=20*60;
+                    attacker_jobject.curseenergy+=(attacker_jobject.max_curseenergy-attacker_jobject.curseenergy)*0.2;
+                    victim.getLocation().createExplosion(attacker,2,false,rule_breakblock);
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
 }
 class manage implements Runnable{
     int tick=0;
@@ -90,8 +118,8 @@ class manage implements Runnable{
     double phi = 0;
     double step=Math.PI/(10);
     Location b_location;
-    public void potionpower(LivingEntity living,PotionEffectType potionEffectType, double curseenergy){
-        double power = Math.log10(curseenergy+1)-2.5;
+    public void potionpower(LivingEntity living,PotionEffectType potionEffectType, double curseenergy, int black_flash){
+        double power = Math.log10(curseenergy+1)-2.5+black_flash;
         if(power>0){  //
             living.addPotionEffect(new PotionEffect(potionEffectType,30, (int) power));
         }
@@ -102,16 +130,18 @@ class manage implements Runnable{
         if(tick%20==0){
             for(Jobject jobject : PaperJJK.jobjects){
                 if(jobject.user instanceof LivingEntity living){
-                    potionpower(living,PotionEffectType.SPEED,jobject.curseenergy/5000);
-                    potionpower(living,PotionEffectType.JUMP_BOOST,jobject.curseenergy/5000);
-                    potionpower(living,PotionEffectType.STRENGTH,jobject.curseenergy);
+                    potionpower(living,PotionEffectType.SPEED,jobject.curseenergy/5000, (jobject.black_flash_tick>0?2:0));
+                    potionpower(living,PotionEffectType.JUMP_BOOST,jobject.curseenergy/5000, (jobject.black_flash_tick>0?1:0));
+                    potionpower(living,PotionEffectType.STRENGTH,jobject.curseenergy, (jobject.black_flash_tick>0?1:0));
 
                 }
             }
         }
         for(int r=0; r<PaperJJK.jobjects.size(); r++){
             Jobject jobject=PaperJJK.jobjects.get(r);
-
+            if(jobject.black_flash_tick>0){
+                jobject.black_flash();
+            }
             if(jobject.infinity_stun_tick>0){
                 jobject.infinity_stun_tick--;
                 if(jobject.user instanceof LivingEntity living){
@@ -208,7 +238,15 @@ class manage implements Runnable{
                 }
             }
             if(jobject instanceof Jplayer jplayer){
-                ((Jplayer) jobject).scoboard();
+                if(PaperJJK.rule_hud){
+                    ((Jplayer) jobject).scoboard();
+                }
+                if(PaperJJK.hud_off){
+                    PaperJJK.hud_off=false;
+                    ScoreboardManager manager = Bukkit.getScoreboardManager();
+                    Scoreboard emptyBoard = manager.getNewScoreboard();
+                    jplayer.player.setScoreboard(emptyBoard);
+                }
                 if (jobject.curseenergy < jobject.max_curseenergy) {
                     jobject.curseenergy += jobject.max_curseenergy / 10000000 + 1;
                     if (jobject.curseenergy < 0) {

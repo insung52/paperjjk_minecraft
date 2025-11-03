@@ -6,8 +6,6 @@ import org.bukkit.entity.LivingEntity;
 
 import java.util.ArrayList;
 
-import static org.justheare.paperJJK.PaperJJK.getjobject;
-
 public class Jdomain_manager implements Runnable{
     int task_num;
     Jdomain_expand expand;
@@ -42,6 +40,7 @@ public class Jdomain_manager implements Runnable{
                 living.sendMessage("too low health!");
                 expand.owner.innate_domain.destroy_expand();
             }
+
         }
         break_count=0;
         for(Block block : expand.expand_builder.saved_blocks){

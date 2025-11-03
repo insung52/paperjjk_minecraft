@@ -40,7 +40,7 @@ public class Jplayer extends Jobject{
                     }
 
 
-                    player.getWorld().playSound(player.getLocation(), Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.PLAYERS, 3, 1);
+                    player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
                     player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
                     curseenergy -= getremaincurrent() / 10 + 2;
                     if (can_air_surface) {
@@ -50,7 +50,7 @@ public class Jplayer extends Jobject{
             }
         }
         if (can_air_surface) {
-            if (!player.isOnGround() && player.isSneaking()) {
+            if (!player.isOnGround() && player.isSneaking() && curseenergy>100) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, 5, 0));
                 //player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 5, 2));
             }

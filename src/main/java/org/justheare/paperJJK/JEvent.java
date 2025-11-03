@@ -7,7 +7,6 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -24,8 +23,6 @@ import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 
-import javax.print.attribute.standard.MediaSize;
-import java.awt.print.Book;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.UUID;
@@ -71,13 +68,16 @@ public class JEvent implements Listener {
         Jobject v_jobject= getjobject(victim);
         double damage=event.getDamage();
         if(v_jobject!=null) {
-            if(!victim.getScoreboardTags().contains("cursed2")){
+            //log("ede ccc");
+            if(!victim.getScoreboardTags().contains("cursed")){
                 if(v_jobject.naturaltech.equals("mahoraga")){
                     if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.PROJECTILE)){
                         //PaperJJK.log("entity to ede");
+                        //log("ede not fire");
                     }
-                    else if(    (event.getCause().equals(EntityDamageEvent.DamageCause.LAVA) ||event.getCause().equals(EntityDamageEvent.DamageCause.FIRE)||event.getCause().equals(EntityDamageEvent.DamageCause.FIRE_TICK)||event.getCause().equals(EntityDamageEvent.DamageCause.CONTACT)||event.getCause().equals(EntityDamageEvent.DamageCause.SUFFOCATION)||event.getCause().equals(EntityDamageEvent.DamageCause.HOT_FLOOR) )   ){
+                    else if(event.getCause().equals(EntityDamageEvent.DamageCause.LIGHTNING) || event.getCause().equals(EntityDamageEvent.DamageCause.LAVA) ||event.getCause().equals(EntityDamageEvent.DamageCause.FIRE)||event.getCause().equals(EntityDamageEvent.DamageCause.FIRE_TICK)||event.getCause().equals(EntityDamageEvent.DamageCause.CONTACT)||event.getCause().equals(EntityDamageEvent.DamageCause.SUFFOCATION)||event.getCause().equals(EntityDamageEvent.DamageCause.HOT_FLOOR)    ){
                         Mahoraga jujut = (Mahoraga) v_jobject.jujuts.get(0);
+                        //log("ede fire");
                         //PaperJJK.log(event.getCause().toString()+" entitydamage "+jujut.adapt_list.size());
                         double power = jujut.pre_adapt(event.getCause().toString(),"damage",1);
                         //PaperJJK.log(String.valueOf(power));
@@ -85,6 +85,12 @@ public class JEvent implements Listener {
                             event.setCancelled(true);
                             return;
                         }
+                    }
+                    else {
+                        Mahoraga jujut = (Mahoraga) v_jobject.jujuts.get(0);
+                        //log("ede fire");
+                        //PaperJJK.log(event.getCause().toString()+" entitydamage "+jujut.adapt_list.size());
+                        double power = jujut.pre_adapt(event.getCause().toString(),"damage",1);
                     }
                 }
             }
@@ -140,22 +146,54 @@ public class JEvent implements Listener {
                 living.setNoDamageTicks(2);
             }
         }
+        if(!victim.getScoreboardTags().contains("cursed")){
+            if(attacker instanceof  Player player&&!player.getEquipment().getItemInMainHand().isEmpty()){
+                if(getItemTag(player.getEquipment().getItemInMainHand()).equals("cw_ish")&&player.getCooldown(player.getEquipment().getItemInMainHand().getType())==0){
+                    player.setCooldown(player.getEquipment().getItemInMainHand().getType(),getjobject(player).usecw("ish",true));
+                }
+                if(getItemTag(player.getEquipment().getItemInMainHand()).equals("cw_kamutoke")&&player.getCooldown(player.getEquipment().getItemInMainHand().getType())==0){
+                    player.setCooldown(player.getEquipment().getItemInMainHand().getType(),getjobject(player).usecw("kamutoke",true));
+                }
+
+            }
+            else if(attacker instanceof LivingEntity living&&getItemTag(living.getEquipment().getItemInMainHand()).equals("cw_ish")){
+                if(getjobject(attacker)!=null){
+                    getjobject(attacker).usecw("ish",true);
+                }
+                else {
+                    jobjects.add(new Jliving(attacker));
+                    getjobject(attacker).usecw("ish",true);
+                }
+            }
+            else if(attacker instanceof LivingEntity living&&getItemTag(living.getEquipment().getItemInMainHand()).equals("cw_kamutoke")){
+                if(getjobject(attacker)!=null){
+                    getjobject(attacker).usecw("kamutoke",true);
+                }
+                else {
+                    jobjects.add(new Jliving(attacker));
+                    getjobject(attacker).usecw("kamutoke",true);
+                }
+            }
+        }
+
         if(v_jobject!=null){
             boolean c1 = victim.getScoreboardTags().contains("cursed");
-            boolean c2 = victim.getScoreboardTags().contains("cursed2");
-            damage-=damage*((Math.pow(v_jobject.curseenergy,0.15)*4.5)/100)*((double) (v_jobject.max_cursecurrent-v_jobject.cursecurrent) /v_jobject.max_cursecurrent);
 
+            damage-=damage*((Math.pow(v_jobject.curseenergy,0.15)*4.5)/100)*((double) (v_jobject.max_cursecurrent-v_jobject.cursecurrent) /v_jobject.max_cursecurrent);
+            //log("edee ccc");
             if(!c1){
                 if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.PROJECTILE)){
                     if(v_jobject.naturaltech.equals("mahoraga")){
                         Mahoraga jujut = (Mahoraga) v_jobject.jujuts.get(0);
                         damage = jujut.pre_adapt(event.getCause().toString(),"damage",damage);
+                        //log("edee fire");
                         event.setDamage(damage);
                     }
                 }
                 else{
                 }
             }
+
             if(v_jobject.naturaltech.equals("infinity")){   //infinity defence
                 for (Jujut jujut : v_jobject.jujuts) {
                     if (jujut instanceof Infinity_passive ip) {
@@ -167,21 +205,8 @@ public class JEvent implements Listener {
                                 return;
                             }
                         }
-                        else if(attacker instanceof  Player player&&!player.getEquipment().getItemInMainHand().isEmpty()){
-                            if(getItemTag(player.getEquipment().getItemInMainHand()).equals("cw_ish")&&player.getCooldown(player.getEquipment().getItemInMainHand().getType())==0){
-                                player.setCooldown(player.getEquipment().getItemInMainHand().getType(),getjobject(player).usecw("ish"));
-                            }
-                            if(getItemTag(player.getEquipment().getItemInMainHand()).equals("cw_kamutoke")&&player.getCooldown(player.getEquipment().getItemInMainHand().getType())==0){
-                                player.setCooldown(player.getEquipment().getItemInMainHand().getType(),getjobject(player).usecw("kamutoke"));
-                            }
 
-                        }
-                        else if(attacker instanceof LivingEntity living&&getItemTag(living.getEquipment().getItemInMainHand()).equals("cw_ish")&&getjobject(attacker)!=null){
-                            getjobject(attacker).usecw("ish");
-                        }
-                        else if(attacker instanceof LivingEntity living&&getItemTag(living.getEquipment().getItemInMainHand()).equals("cw_kamutoke")&&getjobject(attacker)!=null){
-                            getjobject(attacker).usecw("kamutoke");
-                        }
+
                         else if(atj==null){
                             event.setCancelled(true);
                             return;
@@ -204,10 +229,18 @@ public class JEvent implements Listener {
                     event.setDamage(damage);
                 }
                 victim.removeScoreboardTag("cursed");
+
             }
             else {     //physical
                 if(v_jobject.cursespirit) {
                     event.setCancelled(true);
+                }
+                if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)){
+                    boolean bf = is_black_flash(attacker,victim);
+                    if(bf){
+                        damage=Math.pow(damage,1.5);
+                        event.setDamage(damage);
+                    }
                 }
                 else {
                     event.setDamage(Math.round(damage));
@@ -223,6 +256,13 @@ public class JEvent implements Listener {
                 victim.removeScoreboardTag("cursed");
             }
             else {
+                if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)){
+                    boolean bf = is_black_flash(attacker,victim);
+                    if(bf){
+                        damage=damage*damage;
+                        event.setDamage(damage);
+                    }
+                }
                 if(attacker instanceof Player player&&!event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_EXPLOSION)){
                     event.setCancelled(useing_jujut(player,true,victim));
                 }
@@ -249,7 +289,7 @@ public class JEvent implements Listener {
     @EventHandler
     public void onLightningStrikeEvent(LightningStrikeEvent event){
         if(!event.getLightning().isEffect()) {
-            for (Jobject jobject : PaperJJK.jobjects) {
+            for (Jobject jobject : jobjects) {
                 if (jobject.naturaltech.equals("infinity")) {
                     for (Jujut jujut : jobject.jujuts) {
                         if (jujut instanceof Infinity_passive ip) {
@@ -312,10 +352,10 @@ public class JEvent implements Listener {
                 }
             }
             else if(getItemTag(item).equals("cw_ish")&&player.getCooldown(item.getType())==0){
-                player.setCooldown(item.getType(),eventjobject.usecw("ish"));
+                player.setCooldown(item.getType(),eventjobject.usecw("ish",action.isLeftClick()));
             }
             else if(getItemTag(item).equals("cw_kamutoke")&&player.getCooldown(item.getType())==0){
-                player.setCooldown(item.getType(),eventjobject.usecw("kamutoke"));
+                player.setCooldown(item.getType(),eventjobject.usecw("kamutoke",action.isLeftClick()));
             }
         }
     }
@@ -383,23 +423,23 @@ public class JEvent implements Listener {
         joiner.setAllowFlight(true);
         UUID joineruuid=joiner.getUniqueId();
         boolean dex=false;
-        for(int r=0; r<PaperJJK.jobjects.size(); r++){
-            if(PaperJJK.jobjects.get(r).uuid.equals(joineruuid)){
+        for(int r = 0; r< jobjects.size(); r++){
+            if(jobjects.get(r).uuid.equals(joineruuid)){
                 dex=true;
-                PaperJJK.jobjects.get(r).user=joiner;
-                PaperJJK.jobjects.get(r).player=joiner;
+                jobjects.get(r).user=joiner;
+                jobjects.get(r).player=joiner;
                 if(getjobject(event.getPlayer()).max_curseenergy>1000) {
                     event.getPlayer().setAllowFlight(true);
                 }
                 else{
                     event.getPlayer().setAllowFlight(false);
                 }
-                PaperJJK.log("re-entered");
+                //PaperJJK.log("re-entered");
                 break;
             }
         }
         if(!dex){
-            PaperJJK.jobjects.add(new Jplayer(joiner));
+            jobjects.add(new Jplayer(joiner));
             event.setJoinMessage("new sorcerer joined");
         }
     }
@@ -423,10 +463,10 @@ public class JEvent implements Listener {
             }
         }
         else if(getItemTag(item).equals("cw_ish")&&player.getCooldown(item.getType())==0){
-            player.setCooldown(item.getType(),getjobject(player).usecw("ish"));
+            player.setCooldown(item.getType(),getjobject(player).usecw("ish",true));
         }
         else if(getItemTag(item).equals("cw_kamutoke")&&player.getCooldown(item.getType())==0){
-            player.setCooldown(item.getType(),getjobject(player).usecw("kamutoke"));
+            player.setCooldown(item.getType(),getjobject(player).usecw("kamutoke",true));
         }
         return false;
     }
@@ -445,4 +485,5 @@ public class JEvent implements Listener {
 
         return rrr;
     }
+
 }

@@ -2,6 +2,8 @@ package org.justheare.paperJJK;
 
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.Color;
+import org.bukkit.Particle;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
@@ -10,7 +12,7 @@ import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.UUID;
 
-import static org.justheare.paperJJK.PaperJJK.getjobject;
+import static org.justheare.paperJJK.PaperJJK.*;
 
 public class Jobject {
     boolean ish_depence=false;
@@ -18,9 +20,10 @@ public class Jobject {
     Jdomain_innate innate_domain;
     Player player;
     double black_flash_num=0.01;
+    int black_flash_tick=0;
     int max_curseenergy=200;
-    int curseenergy=0;
-    int max_cursecurrent=0;
+    int curseenergy=1;
+    int max_cursecurrent=1;
     int cursecurrent=0;
     boolean reversecurse=false;
     boolean reversecursing=false;
@@ -36,6 +39,18 @@ public class Jobject {
     ArrayList<Jujut> jujuts=new ArrayList<Jujut>();
     Entity cursedentity;
     int infinity_stun_tick=0;
+    public void black_flash(){
+        black_flash_tick--;
+        if(black_flash_tick==0){
+        }
+        else{
+            if (curseenergy < max_curseenergy) {
+                curseenergy += max_curseenergy / 1000000 + 1;
+            }
+            //Particle.DustOptions dust=new Particle.DustOptions(Color.BLACK, 1);
+            user.getWorld().spawnParticle(Particle.ENTITY_EFFECT, user.getLocation(), 3, 0.5, 0.5, 0.5, 0.5,Color.BLACK);
+        }
+    }
     public boolean use_domain(String[] values,boolean cancel){
         if(!cancel){
             if (innate_domain.level < 2) {
@@ -58,6 +73,7 @@ public class Jobject {
         }
         else{
             if(values[0].equals("1")){
+
                 return innate_domain.undrow_expand();
             }
             else if(values[0].equals("0")){
@@ -72,9 +88,11 @@ public class Jobject {
 
     public boolean damaget(LivingEntity victim,char type, double damage, boolean physics,String spe_name, boolean sure_hit){
         if (physics) {
-            if (Math.random() <= black_flash_num) {
-                //new EntityDamageByEntityEvent(user, victim, EntityDamageEvent.DamageCause.CUSTOM, Math.pow(damage, 2.5)).callEvent();
-                return true;
+
+            boolean bf = is_black_flash(user,victim);
+            if(bf){
+                damage=Math.pow(damage,1.5);
+                //event.setDamage(damage);
             }
         }
         Jobject v_jobject = getjobject(victim);
@@ -103,7 +121,7 @@ public class Jobject {
             }
         }
         victim.addScoreboardTag("cursed");
-        victim.addScoreboardTag("cursed2");
+
         if(sure_hit){
             //victim.addScoreboardTag("sure_hit");
         }
@@ -206,7 +224,7 @@ public class Jobject {
                 if(type.equals("kai")){
                     if(rct){
                         if(victim!=null){
-                            Mizushi mizushi = new Mizushi(this,spe_name,type,true,power,duration,target);
+                            Mizushi mizushi = new Mizushi(this,spe_name,type,true,power, Math.min(duration, 50),target);
                             mizushi.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin,mizushi,1,1);
                             jujuts.add(mizushi);
                             mizushi.j_entities.add(victim);
@@ -238,15 +256,16 @@ public class Jobject {
         }
         return 10;
     }
-    public int usecw(String name){
+    public int usecw(String name,boolean rct){
         if(name.equals("ish")){
-            Cw_ish cw_ish = new Cw_ish(this,"ish","ish",false,0,10,'a');
+            Cw_ish cw_ish = new Cw_ish(this,"ish","ish",rct,0,10,'a');
             cw_ish.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin,cw_ish,1,1);
+            return 40;
         }
         else if(name.equals("kamutoke")){
-            Cw_kamutoke cw_kamutoke = new Cw_kamutoke(this,"kamutoke","kamutoke",false,0,10,'a');
+            Cw_kamutoke cw_kamutoke = new Cw_kamutoke(this,"kamutoke","kamutoke",rct,0,10,'a');
             cw_kamutoke.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin,cw_kamutoke,1,1);
-            return 100;
+            return 200;
         }
         return 10;
     }

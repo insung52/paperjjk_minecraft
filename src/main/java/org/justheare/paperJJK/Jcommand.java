@@ -1,22 +1,22 @@
 package org.justheare.paperJJK;
 
-import org.bukkit.*;
+import org.bukkit.ChatColor;
+import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.command.TabExecutor;
-import org.bukkit.entity.*;
+import org.bukkit.entity.EntityType;
+import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.util.Transformation;
-import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.joml.AxisAngle4f;
-import org.joml.Vector3f;
 
 import java.util.Arrays;
 import java.util.List;
@@ -118,7 +118,7 @@ public class Jcommand implements TabExecutor {
                         if (meta != null) {
                             meta.setTitle("unct_mizushi");
                             meta.setAuthor("ins");
-                            meta.addPage("kai/10/40/a/end");
+                            meta.addPage("kai/10/10/a/end");
                             meta.setDisplayName("§ckai_10");
                             book.setItemMeta(meta);
                         }
@@ -129,7 +129,7 @@ public class Jcommand implements TabExecutor {
                         if (meta != null) {
                             meta.setTitle("unct_mizushi");
                             meta.setAuthor("ins");
-                            meta.addPage("kai/100/40/a/end");
+                            meta.addPage("kai/100/10/a/end");
                             meta.setDisplayName("§c§lkai_100");
                             book.setItemMeta(meta);
                         }
@@ -290,6 +290,29 @@ public class Jcommand implements TabExecutor {
                     m_jobject.setvalues("mahoraga",4000000,10000,1,1);
                     m_jobject.usejujut("mahoraga","mahoraga","mahoraga",false,100,999,'a',null);
                 }
+                else if(args[0].equals("rule")){
+                    if(args[1].equals("breakblock")){
+                        if(args[2].equals("true")){
+                            rule_breakblock=true;
+                            player.sendMessage("break block set true");
+                        }
+                        else if(args[2].equals("false")){
+                            rule_breakblock=false;
+                            player.sendMessage("break block set false");
+                        }
+                    }
+                    else if(args[1].equals("hud")){
+                        if(args[2].equals("true")){
+                            rule_hud=true;
+                            player.sendMessage("hud set true");
+                        }
+                        else if(args[2].equals("false")){
+                            rule_hud=false;
+                            hud_off=true;
+                            player.sendMessage("hud set false");
+                        }
+                    }
+                }
             }
             else {
                 sender.sendMessage(ChatColor.GRAY+"no permission");
@@ -301,7 +324,7 @@ public class Jcommand implements TabExecutor {
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if(command.getName().equalsIgnoreCase("jjk")){
             if(args.length==1){
-                return Arrays.asList("refill","basic","reset","set","cw","ce","mahoraga","id","ed","nb");
+                return Arrays.asList("refill","basic","reset","set","cw","ce","mahoraga","id","ed","nb","rule");
             }
             else if(args.length==2){
                 if(args[0].equals("basic")){
@@ -313,6 +336,20 @@ public class Jcommand implements TabExecutor {
                 else if(args[0].equals("cw")){
                     return Arrays.asList("ish","kamutoke");
                 }
+                else if(args[0].equals("rule")){
+                    return Arrays.asList("breakblock","hud");
+                }
+            }
+            else if(args.length==3){
+                if(args[0].equals("rule")){
+                    if(args[1].equals("breakblock")){
+                        return Arrays.asList("true","false");
+                    }
+                    else if(args[1].equals("hud")){
+                        return Arrays.asList("true","false");
+                    }
+                }
+
             }
         }
         return List.of("");

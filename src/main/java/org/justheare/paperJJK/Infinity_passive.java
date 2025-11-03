@@ -66,14 +66,15 @@ public class Infinity_passive extends Jujut{
                     j_entities.add(entity);
                     j_entities_location.add(entity.getLocation());
                     if(entity instanceof LivingEntity){
-                        defending(entity, 'd',8);
+                        //defending(entity, 'd',8);
                     }
                     else {
-                        defending(entity, 'd');
+                        //defending(entity, 'd');
                     }
                 }
             }
         }
+        boolean defend=false;
         for(int r=0; r<j_entities.size(); r++){
             Entity entity=j_entities.get(r);
             double entity_distance=entity.getLocation().add(0,entity.getHeight()/2,0).distance(location);
@@ -104,7 +105,10 @@ public class Infinity_passive extends Jujut{
                     entity.setVelocity(d_location(location,entity.getLocation()).normalize().multiply(0.3*power));
                     j_entities_location.set(r,entity.getLocation());
                     if(tick==0&&entity instanceof LivingEntity){
-                        defending(entity,'p',0);
+                        if(!defend){
+                            defending(entity,'p',0);
+                            defend = true;
+                        }
                         //PaperJJK.log(entity_distance+"1");
                         tick= (int) (entity_distance*4);
                     }
@@ -170,62 +174,67 @@ class Defending implements Runnable{
     }
     @Override
     public void run() {
-        location=ip.location;
-        if(type=='d'){
-            if(theta >= Math.PI * (speed/14.0)){
-                Bukkit.getScheduler().cancelTask(task_num);
-            }
-            else{
-                //PaperJJK.log(phi+" ");
-                phistep = step / Math.sin(theta == 0 || theta == Math.PI ? step : theta);
-                for (double phi = 0; phi < 2 * Math.PI; phi += phistep) {
+        try {
+            location = ip.location;
+            if (type == 'd') {
+                if (theta >= Math.PI * (speed / 14.0)) {
+                    Bukkit.getScheduler().cancelTask(task_num);
+                } else {
+                    //PaperJJK.log(phi+" ");
+                    //phistep = step / Math.sin(theta == 0 || theta == Math.PI ? step : theta);
 
-                    double x = ip.use_power * Math.sin(theta) * Math.cos(phi);
-                    double y = ip.use_power * Math.sin(theta) * Math.sin(phi);
-                    double z = ip.use_power * Math.cos(theta);
-                    //b_location.getWorld().spawnParticle(Particle.REDSTONE, b_location.clone().add(new Vector(x,y,z)), 1, 0.1, 0.1, 0.1, 0.5, dust, true);
-                    Location tlocation = location.clone().add(new Vector(x, y, z).rotateAroundY(-Math.toRadians(yaw)).rotateAroundX(Math.toRadians(pitch) * Math.cos(Math.toRadians(yaw))).rotateAroundZ(Math.toRadians(pitch) * Math.sin(Math.toRadians(yaw))));
-                    //location.getWorld().spawnParticle(Particle.REDSTONE, tlocation, 1, 0.1, 0.1, 0.1, 0.5, dust, true);
-                    tlocation.getWorld().spawnParticle(Particle.ELECTRIC_SPARK,tlocation,1,0.01,0.01,0.01,0);
+                    double sinTheta = Math.sin(theta);
+                    phistep = (theta == 0 || theta == Math.PI) ? step : step / (sinTheta == 0 ? 1e-8 : sinTheta);
+
+                    for (double phi = 0; phi < 2 * Math.PI; phi += phistep) {
+
+                        double x = ip.use_power * Math.sin(theta) * Math.cos(phi);
+                        double y = ip.use_power * Math.sin(theta) * Math.sin(phi);
+                        double z = ip.use_power * Math.cos(theta);
+                        //b_location.getWorld().spawnParticle(Particle.REDSTONE, b_location.clone().add(new Vector(x,y,z)), 1, 0.1, 0.1, 0.1, 0.5, dust, true);
+                        Location tlocation = location.clone().add(new Vector(x, y, z).rotateAroundY(-Math.toRadians(yaw)).rotateAroundX(Math.toRadians(pitch) * Math.cos(Math.toRadians(yaw))).rotateAroundZ(Math.toRadians(pitch) * Math.sin(Math.toRadians(yaw))));
+                        //location.getWorld().spawnParticle(Particle.REDSTONE, tlocation, 1, 0.1, 0.1, 0.1, 0.5, dust, true);
+                        tlocation.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, tlocation, 1, 0.01, 0.01, 0.01, 0);
+                    }
+                    theta += step;
                 }
-                theta+=step;
+            } else if (type == 'l') {
+                if (theta >= Math.PI * (0.8)) {
+                    Bukkit.getScheduler().cancelTask(task_num);
+                } else {
+                    phistep = step / Math.sin(theta == 0 || theta == Math.PI ? step : theta);
+                    for (double phi = 0; phi < 2 * Math.PI; phi += phistep) {
+                        double x = ip.use_power * Math.sin(theta) * Math.cos(phi);
+                        double y = ip.use_power * Math.sin(theta) * Math.sin(phi);
+                        double z = ip.use_power * Math.cos(theta);
+                        //b_location.getWorld().spawnParticle(Particle.REDSTONE, b_location.clone().add(new Vector(x,y,z)), 1, 0.1, 0.1, 0.1, 0.5, dust, true);
+                        Location tlocation = location.clone().add(new Vector(x, y, z).rotateAroundY(-Math.toRadians(yaw)).rotateAroundX(Math.toRadians(pitch) * Math.cos(Math.toRadians(yaw))).rotateAroundZ(Math.toRadians(pitch) * Math.sin(Math.toRadians(yaw))));
+                        //location.getWorld().spawnParticle(Particle.REDSTONE, tlocation, 1, 0.1, 0.1, 0.1, 0.5, dust, true);
+                        tlocation.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, tlocation, 1, 0.01, 0.01, 0.01, 0);
+                    }
+                    theta += step;
+                }
+            } else if (type == 'p') {
+                if (theta >= Math.PI * (0.6)) {
+                    Bukkit.getScheduler().cancelTask(task_num);
+                } else {
+                    phistep = step / Math.sin(theta == 0 || theta == Math.PI ? step : theta);
+                    for (double phi = 0; phi < 2 * Math.PI; phi += phistep) {
+                        double x = ip.use_power / 2 * Math.sin(theta) * Math.cos(phi);
+                        double y = ip.use_power / 2 * Math.sin(theta) * Math.sin(phi);
+                        double z = ip.use_power / 2 * Math.cos(theta);
+                        //b_location.getWorld().spawnParticle(Particle.REDSTONE, b_location.clone().add(new Vector(x,y,z)), 1, 0.1, 0.1, 0.1, 0.5, dust, true);
+                        Location tlocation = location.clone().add(new Vector(x, y, z).rotateAroundY(-Math.toRadians(yaw)).rotateAroundX(Math.toRadians(pitch) * Math.cos(Math.toRadians(yaw))).rotateAroundZ(Math.toRadians(pitch) * Math.sin(Math.toRadians(yaw))));
+                        //location.getWorld().spawnParticle(Particle.REDSTONE, tlocation, 1, 0.1, 0.1, 0.1, 0.5, dust, true);
+                        tlocation.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, tlocation, 1, 0.01, 0.01, 0.01, 0);
+                    }
+                    theta += step;
+                }
             }
         }
-        else if(type=='l'){
-            if(theta >= Math.PI * (0.8)){
-                Bukkit.getScheduler().cancelTask(task_num);
-            }
-            else{
-                phistep = step / Math.sin(theta == 0 || theta == Math.PI ? step : theta);
-                for (double phi = 0; phi < 2 * Math.PI; phi += phistep) {
-                    double x = ip.use_power * Math.sin(theta) * Math.cos(phi);
-                    double y = ip.use_power * Math.sin(theta) * Math.sin(phi);
-                    double z = ip.use_power * Math.cos(theta);
-                    //b_location.getWorld().spawnParticle(Particle.REDSTONE, b_location.clone().add(new Vector(x,y,z)), 1, 0.1, 0.1, 0.1, 0.5, dust, true);
-                    Location tlocation = location.clone().add(new Vector(x, y, z).rotateAroundY(-Math.toRadians(yaw)).rotateAroundX(Math.toRadians(pitch) * Math.cos(Math.toRadians(yaw))).rotateAroundZ(Math.toRadians(pitch) * Math.sin(Math.toRadians(yaw))));
-                    //location.getWorld().spawnParticle(Particle.REDSTONE, tlocation, 1, 0.1, 0.1, 0.1, 0.5, dust, true);
-                    tlocation.getWorld().spawnParticle(Particle.ELECTRIC_SPARK,tlocation,1,0.01,0.01,0.01,0);
-                }
-                theta+=step;
-            }
-        }
-        else if(type=='p'){
-            if(theta >= Math.PI * (0.6)){
-                Bukkit.getScheduler().cancelTask(task_num);
-            }
-            else{
-                phistep = step / Math.sin(theta == 0 || theta == Math.PI ? step : theta);
-                for (double phi = 0; phi < 2 * Math.PI; phi += phistep) {
-                    double x = ip.use_power/2 * Math.sin(theta) * Math.cos(phi);
-                    double y = ip.use_power/2 * Math.sin(theta) * Math.sin(phi);
-                    double z = ip.use_power/2 * Math.cos(theta);
-                    //b_location.getWorld().spawnParticle(Particle.REDSTONE, b_location.clone().add(new Vector(x,y,z)), 1, 0.1, 0.1, 0.1, 0.5, dust, true);
-                    Location tlocation = location.clone().add(new Vector(x, y, z).rotateAroundY(-Math.toRadians(yaw)).rotateAroundX(Math.toRadians(pitch) * Math.cos(Math.toRadians(yaw))).rotateAroundZ(Math.toRadians(pitch) * Math.sin(Math.toRadians(yaw))));
-                    //location.getWorld().spawnParticle(Particle.REDSTONE, tlocation, 1, 0.1, 0.1, 0.1, 0.5, dust, true);
-                    tlocation.getWorld().spawnParticle(Particle.ELECTRIC_SPARK,tlocation,1,0.01,0.01,0.01,0);
-                }
-                theta+=step;
-            }
+        catch (Exception e){
+            PaperJJK.log( e.getClass().getSimpleName() + " - " + e.getMessage());
+            Bukkit.getScheduler().cancelTask(task_num);
         }
     }
 }

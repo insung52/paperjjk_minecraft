@@ -95,7 +95,7 @@ public class Infinity extends Jujut{
         for(Jujut jujut:jujuts){
             if(!jujut.charging&&jujut instanceof Infinity&&jujut.user.equals(user)){
                 if(!jujut.reversecurse){
-                    if(jujut.location.distance(location)<10){
+                    if(jujut.location.distance(location)<10&&jujut.use_power>=10&&use_power>=10){
                         use_power+=jujut.use_power;
                         murasaki=true;
                         boolean ind=false;
@@ -208,7 +208,7 @@ public class Infinity extends Jujut{
                                 j_entities.add(tentity);
                                 //tentity.setVelocity(tentity.getVelocity().add(location.getDirection().clone().multiply(7)));
                                 if (tentity instanceof LivingEntity living) {
-                                    jobject.damaget(living, 'j', Math.pow(use_power, 1)*20, false,"murasaki",false);
+                                    jobject.damaget(living, 'j', Math.pow(use_power, 1.3)*1, false,"murasaki",false);
                                 }
                             }
                         }
@@ -232,7 +232,7 @@ public class Infinity extends Jujut{
                             else {
                                 use_power -= Math.log(location.getBlock().getType().getHardness()+5)*5+7;
                             }
-                            location.createExplosion(user,(float) ((float) (Math.log(location.getBlock().getType().getHardness()+3)*4)*((use_power+50)/150)*1.5),false);
+                            location.createExplosion(user,(float) ((float) (Math.log(location.getBlock().getType().getHardness()+3)*4)*((use_power+50)/150)*1.5),false,PaperJJK.rule_breakblock);
                         }
                     }
                 }
@@ -251,11 +251,11 @@ public class Infinity extends Jujut{
                             jobject.damaget(living, 'j', 2 + Math.pow(use_power, 0.5), false,"aka",false);
                         }
                         if (Math.random() > 0.9) {
-                            living.getEyeLocation().createExplosion(user,(float) Math.log10(use_power),false);
+                            living.getEyeLocation().createExplosion(user,(float) Math.log10(use_power),false,PaperJJK.rule_breakblock);
                         }
                     } else {
                         if (Math.random() > 0.9) {
-                            j_entities.get(r).getLocation().createExplosion(user,(float) Math.log10(use_power / 3),false);
+                            j_entities.get(r).getLocation().createExplosion(user,(float) Math.log10(use_power / 3),false,PaperJJK.rule_breakblock);
                             //j_entities.remove(r);
                         }
                     }
@@ -350,19 +350,21 @@ public class Infinity extends Jujut{
                     BlockData a_blockdata=a_location.getBlock().getBlockData();
                     Location b_location=a_location.clone().add(rv.normalize().multiply(-1.2));
                     if(!a_location.getBlock().isEmpty()){
-                        if(b_location.getBlock().isLiquid()||(b_location.getBlock().getType().getHardness()<use_power/3&&b_location.getBlock().getType().getHardness()>=0)){
-                            if(a_location.getBlock().isLiquid()||(a_location.getBlock().getType().getHardness()<use_power/3&&a_location.getBlock().getType().getHardness()>=0)){
-                                rrrr++;
-                                if(rrrr==500){
-                                    b_location.getWorld().spawnFallingBlock(b_location, a_blocktype, (byte) 0);
-                                    a_location.getBlock().setType(Material.AIR);
-                                    rrrr=0;
-                                }
-                                else{
-                                    b_location.getBlock().setType(a_blocktype);
-                                    b_location.getBlock().setBlockData(a_blockdata);
-                                    a_location.getBlock().setType(Material.AIR);
+                        if(PaperJJK.rule_breakblock){
+                            if(b_location.getBlock().isLiquid()||(b_location.getBlock().getType().getHardness()<use_power/3&&b_location.getBlock().getType().getHardness()>=0)){
+                                if(a_location.getBlock().isLiquid()||(a_location.getBlock().getType().getHardness()<use_power/3&&a_location.getBlock().getType().getHardness()>=0)){
+                                    rrrr++;
+                                    if(rrrr==500){
+                                        b_location.getWorld().spawnFallingBlock(b_location, a_blocktype, (byte) 0);
+                                        a_location.getBlock().setType(Material.AIR);
+                                        rrrr=0;
+                                    }
+                                    else{
+                                        b_location.getBlock().setType(a_blocktype);
+                                        b_location.getBlock().setBlockData(a_blockdata);
+                                        a_location.getBlock().setType(Material.AIR);
 
+                                    }
                                 }
                             }
                         }

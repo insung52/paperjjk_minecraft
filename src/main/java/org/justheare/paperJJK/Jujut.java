@@ -80,6 +80,9 @@ public class Jujut implements Runnable{
         disabled();
     }
     public float breakblock(Location break_location,int breakpower){
+        if(!PaperJJK.rule_breakblock){
+            return 1000000;
+        }
         Block break_block=break_location.getBlock();
         float rr=break_block.getType().getHardness();
         if(break_block.getType().getHardness()>-1) {
