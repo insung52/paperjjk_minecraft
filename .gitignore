@@ -2,7 +2,7 @@
 .gradle/
 build/
 out/
-
+.claude/
 # IDE files
 .idea/
 *.iml
@@ -48,3 +48,6 @@ desktop.ini
 # gradle/
 # gradlew
 # gradlew.bat
+/.claude
+/.claude
+.claude/settings.local.json
