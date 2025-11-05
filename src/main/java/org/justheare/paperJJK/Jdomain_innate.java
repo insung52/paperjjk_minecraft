@@ -14,6 +14,9 @@ import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Objects;
+import java.util.Set;
 
 public class Jdomain_innate extends Jdomain{
     boolean isexpanded=false;
@@ -256,9 +259,17 @@ public class Jdomain_innate extends Jdomain{
             owner.user.sendMessage("innate domain destroy started...");
             isbuilding=true;
             isbuilt=false;
-            originbuilder.build_mode=false;
-            originbuilder.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin, originbuilder, 1, 1);
 
+            // block_count가 0이면 (데이터 로드로 복원된 경우) 블록 데이터가 없음
+            if(originbuilder.block_count == 0){
+                //owner.user.sendMessage(ChatColor.YELLOW + "Warning: No block data saved. Domain will be marked as destroyed but blocks may remain.");
+                //owner.user.sendMessage(ChatColor.YELLOW + "You can manually break the blocks or rebuild the domain.");
+                isbuilding=false;
+                destroy_finished();
+            } else {
+                originbuilder.build_mode=false;
+                originbuilder.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin, originbuilder, 1, 1);
+            }
         }
     }
     void start_effect(){
@@ -268,6 +279,22 @@ public class Jdomain_innate extends Jdomain{
         effector.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin, effector, 1, 1);
     }
     void set_special(){
+    }
+
+    @Override
+    void build_finished(){
+        super.build_finished();
+        // 블록 데이터 저장
+        if(originbuilder != null && originbuilder.block_count > 0){
+            JDomainData.saveDomainBlocks(owner.uuid, originbuilder);
+        }
+    }
+
+    @Override
+    void destroy_finished(){
+        super.destroy_finished();
+        // 블록 데이터 삭제 (선택사항 - 필요하면 나중에 재사용 가능)
+        // JDomainData.deleteDomainBlocks(owner.uuid);
     }
 }
 class Jdomain_Builder implements Runnable{
@@ -283,12 +310,12 @@ class Jdomain_Builder implements Runnable{
     int radius;
     Material border_material;
     int rx,ry,rz;
-    int px,py,pz;
     int block_count=0;
     Block[] saved_blocks;
     Material[] saved_material;
     BlockData[] saved_blockdata;
     BlockState[] saved_blockstate;
+    Set<BlockPos> processedBlocks = new HashSet<>();
     //Vector[]
     public Jdomain_Builder(Jdomain domain, int radius, Material border_material,Location location){
         this.domain=domain;
@@ -317,7 +344,10 @@ class Jdomain_Builder implements Runnable{
                     rx=(int) Math.round(Math.sin(tick1 /radius/4*Math.PI)*Math.sin(tick2 /radius/4*Math.PI)*radius);
                     ry=(int) Math.round(Math.cos(tick2 /radius/4*Math.PI)*radius);
                     rz=(int) Math.round(Math.cos(tick1 /radius/4*Math.PI)*Math.sin(tick2 /radius/4*Math.PI)*radius);
-                    if(px==rx&&py==ry&&pz==rz){
+
+                    BlockPos pos = new BlockPos(rx, ry, rz);
+
+                    if(processedBlocks.contains(pos)){
                         tick1++;
                         if(tick1==radius*8){
 
@@ -331,16 +361,16 @@ class Jdomain_Builder implements Runnable{
                         }
                         continue;
                     }
-                    px=rx;
-                    py=ry;
-                    pz=rz;
                     Location tlocation=location.clone().add(rx,ry,rz);
                     saved_blocks[block_count]=tlocation.getBlock();
                     saved_material[block_count]=tlocation.getBlock().getType();
+                    //PaperJJK.log(tlocation.getBlock().getType()+"");
                     saved_blockdata[block_count]=tlocation.getBlock().getBlockData();
                     saved_blockstate[block_count]=tlocation.getBlock().getState();
                     tlocation.getBlock().setType(border_material);
                     block_count++;
+                    // 처리 완료 좌표 저장
+                    processedBlocks.add(pos);
                     tick1++;
                     if(tick1==radius*8){
 
@@ -356,6 +386,7 @@ class Jdomain_Builder implements Runnable{
                 else{
                     if(block_count>0){
                         block_count--;
+                        //PaperJJK.log("Replace : "+saved_material[block_count].name());
                         saved_blocks[block_count].setType(saved_material[block_count]);
                         saved_blocks[block_count].setBlockData(saved_blockdata[block_count]);
                         if(Math.random()<0.01){
@@ -366,7 +397,10 @@ class Jdomain_Builder implements Runnable{
                             Inventory chestInventory = chest.getInventory();
                             chestInventory.setContents(((Chest) saved_blockstate[block_count]).getInventory().getContents());  // 상자 내부 아이템 복원
                         }
-                        saved_blockstate[block_count].update(true);
+                        BlockState state = saved_blockstate[block_count];
+                        if(state != null){
+                            state.update(true);
+                        }
                     }
                     else{
                         domain.destroy_finished();
@@ -378,6 +412,32 @@ class Jdomain_Builder implements Runnable{
         }
     }
 }
+// ========================
+// 블록 좌표 클래스
+// ========================
+class BlockPos {
+    final int x, y, z;
+
+    BlockPos(int x, int y, int z){
+        this.x = x;
+        this.y = y;
+        this.z = z;
+    }
+
+    @Override
+    public boolean equals(Object o){
+        if(this == o) return true;
+        if(!(o instanceof BlockPos)) return false;
+        BlockPos other = (BlockPos)o;
+        return x == other.x && y == other.y && z == other.z;
+    }
+
+    @Override
+    public int hashCode(){
+        return Objects.hash(x, y, z);
+    }
+}
+
 class Jdomain_effector implements Runnable{
     int tasknum;
     Jdomain_innate domain;

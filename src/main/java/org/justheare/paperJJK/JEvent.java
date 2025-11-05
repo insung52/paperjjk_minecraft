@@ -342,13 +342,19 @@ public class JEvent implements Listener {
                 String[] values = PlainTextComponentSerializer.plainText().serialize(bookMeta.page(1)).split("/");
                 if (name[0].equalsIgnoreCase("nct")) {
                     String nct_name = name[1];
+                    PaperJJK.log("[JEvent] NCT book used - naturaltech: " + eventjobject.naturaltech + ", blocked: " + eventjobject.blocked);
                     eventjobject.setvalues(nct_name, Integer.parseInt(values[0]), Integer.parseInt(values[1]), Integer.parseInt(values[2]), Integer.parseInt(values[3]));
                     event.setCancelled(true);
                 }
                 else if(name[0].equalsIgnoreCase("unct")&& !eventjobject.blocked&&(action.isLeftClick()||action.isRightClick())){
+                    PaperJJK.log("[JEvent] UNCT book used - naturaltech: " + eventjobject.naturaltech + ", blocked: " + eventjobject.blocked);
                     if(player.getCooldown(item.getType())==0) {
-                        player.setCooldown(item.getType(), eventjobject.usejujut(name[1],item_name,values[0],(action.isLeftClick()),Integer.parseInt(values[1]), Integer.parseInt(values[2]), values[3].charAt(0),null));
+                        int cooldown = eventjobject.usejujut(name[1],item_name,values[0],(action.isLeftClick()),Integer.parseInt(values[1]), Integer.parseInt(values[2]), values[3].charAt(0),null);
+                        PaperJJK.log("[JEvent] Technique cooldown: " + cooldown);
+                        player.setCooldown(item.getType(), cooldown);
                     }
+                } else if(name[0].equalsIgnoreCase("unct")) {
+                    PaperJJK.log("[JEvent] UNCT blocked - naturaltech: " + eventjobject.naturaltech + ", blocked: " + eventjobject.blocked);
                 }
             }
             else if(getItemTag(item).equals("cw_ish")&&player.getCooldown(item.getType())==0){
@@ -422,23 +428,69 @@ public class JEvent implements Listener {
         Player joiner=event.getPlayer();
         joiner.setAllowFlight(true);
         UUID joineruuid=joiner.getUniqueId();
+        PaperJJK.log("[JEvent] Player joining: " + joiner.getName() + " (UUID: " + joineruuid + ")");
+        PaperJJK.log("[JEvent] Total jobjects in memory: " + jobjects.size());
+
         boolean dex=false;
         for(int r = 0; r< jobjects.size(); r++){
             if(jobjects.get(r).uuid.equals(joineruuid)){
                 dex=true;
+                PaperJJK.log("[JEvent] Found matching jobject at index " + r);
+                PaperJJK.log("[JEvent] Jobject data - naturaltech: " + jobjects.get(r).naturaltech +
+                             ", max_curseenergy: " + jobjects.get(r).max_curseenergy +
+                             ", blocked: " + jobjects.get(r).blocked);
+
                 jobjects.get(r).user=joiner;
                 jobjects.get(r).player=joiner;
+
+                // Jplayer로 타입 변환 (player가 null이었던 경우)
+                if(!(jobjects.get(r) instanceof Jplayer)){
+                    PaperJJK.log("[JEvent] Converting Jobject to Jplayer...");
+                    Jobject oldData = jobjects.get(r);
+                    Jplayer newJplayer = new Jplayer(joiner);
+                    // 기존 데이터 복사
+                    newJplayer.uuid = oldData.uuid;
+                    newJplayer.naturaltech = oldData.naturaltech;
+                    newJplayer.max_curseenergy = oldData.max_curseenergy;
+                    newJplayer.curseenergy = oldData.curseenergy;
+                    newJplayer.max_cursecurrent = oldData.max_cursecurrent;
+                    newJplayer.cursecurrent = oldData.cursecurrent;
+                    newJplayer.reversecurse = oldData.reversecurse;
+                    newJplayer.reversecurse_out = oldData.reversecurse_out;
+                    newJplayer.can_air_surface = oldData.can_air_surface;
+                    newJplayer.black_flash_num = oldData.black_flash_num;
+                    newJplayer.blocked = oldData.blocked;
+                    newJplayer.innate_domain = oldData.innate_domain;
+                    if(newJplayer.innate_domain != null){
+                        newJplayer.innate_domain.owner = newJplayer;
+                        PaperJJK.log("[JEvent] Transferred innate_domain - isbuilt: " + newJplayer.innate_domain.isbuilt +
+                                     ", originbuilder: " + (newJplayer.innate_domain.originbuilder != null ? "exists" : "null") +
+                                     ", block_count: " + (newJplayer.innate_domain.originbuilder != null ? newJplayer.innate_domain.originbuilder.block_count : 0));
+                    }
+                    newJplayer.domain = oldData.domain;
+                    if(newJplayer.domain != null){
+                        newJplayer.domain.jobject = newJplayer;
+                    }
+                    jobjects.set(r, newJplayer);
+                    PaperJJK.log("[JEvent] Converted to Jplayer - naturaltech: " + newJplayer.naturaltech + ", blocked: " + newJplayer.blocked);
+                } else {
+                    PaperJJK.log("[JEvent] Already Jplayer instance");
+                }
+
                 if(getjobject(event.getPlayer()).max_curseenergy>1000) {
                     event.getPlayer().setAllowFlight(true);
                 }
                 else{
                     event.getPlayer().setAllowFlight(false);
                 }
-                //PaperJJK.log("re-entered");
+                PaperJJK.log("[JEvent] Player " + joiner.getName() + " reconnected with saved data");
+                PaperJJK.log("[JEvent] Final check - naturaltech: " + getjobject(joiner).naturaltech +
+                             ", innate_domain: " + (getjobject(joiner).innate_domain != null ? "exists" : "null"));
                 break;
             }
         }
         if(!dex){
+            PaperJJK.log("[JEvent] No existing data found, creating new Jplayer");
             jobjects.add(new Jplayer(joiner));
             event.setJoinMessage("new sorcerer joined");
         }

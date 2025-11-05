@@ -1,0 +1,50 @@
+# Gradle files
+.gradle/
+build/
+out/
+
+# IDE files
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+.settings/
+.classpath
+.project
+bin/
+
+# Compiled class files
+*.class
+
+# Log files
+*.log
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# Plugin data files (user generated)
+plugins/PaperJJK/data.yml
+plugins/PaperJJK/domains/*.dat
+
+# OS specific files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Gradle wrapper (optional - some prefer to include)
+# gradle/
+# gradlew
+# gradlew.bat

@@ -290,6 +290,42 @@ public class Jcommand implements TabExecutor {
                     m_jobject.setvalues("mahoraga",4000000,10000,1,1);
                     m_jobject.usejujut("mahoraga","mahoraga","mahoraga",false,100,999,'a',null);
                 }
+                else if(args[0].equals("save")){
+                    player.sendMessage(ChatColor.YELLOW + "Saving player data...");
+                    JData.saveAllData();
+                    player.sendMessage(ChatColor.GREEN + "Player data saved successfully!");
+                }
+                else if(args[0].equals("domaininfo")){
+                    Jobject jobject = getjobject(player);
+                    if(jobject.innate_domain != null){
+                        player.sendMessage(ChatColor.GOLD + "=== Domain Info ===");
+                        player.sendMessage("IsBuilt: " + jobject.innate_domain.isbuilt);
+                        player.sendMessage("Level: " + jobject.innate_domain.level);
+                        player.sendMessage("Range: " + jobject.innate_domain.range);
+                        if(jobject.innate_domain.originbuilder != null){
+                            player.sendMessage("Builder exists: true");
+                            player.sendMessage("Block count: " + jobject.innate_domain.originbuilder.block_count);
+                        } else {
+                            player.sendMessage("Builder exists: false");
+                        }
+
+                        // dat 파일 확인
+                        java.io.File domainFile = new java.io.File(jjkplugin.getDataFolder(), "domains/" + player.getUniqueId().toString() + ".dat");
+                        if(domainFile.exists()){
+                            player.sendMessage(ChatColor.GREEN + "Domain data file exists: " + domainFile.length() + " bytes");
+                        } else {
+                            player.sendMessage(ChatColor.RED + "Domain data file not found!");
+                        }
+                    } else {
+                        player.sendMessage(ChatColor.RED + "You don't have an innate domain!");
+                    }
+                }
+                else if(args[0].equals("domainverify")){
+                    String result = JDomainData.verifyDomainFile(player.getUniqueId());
+                    for(String line : result.split("\n")){
+                        player.sendMessage(line);
+                    }
+                }
                 else if(args[0].equals("rule")){
                     if(args[1].equals("breakblock")){
                         if(args[2].equals("true")){
@@ -324,7 +360,7 @@ public class Jcommand implements TabExecutor {
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if(command.getName().equalsIgnoreCase("jjk")){
             if(args.length==1){
-                return Arrays.asList("refill","basic","reset","set","cw","ce","mahoraga","id","ed","nb","rule");
+                return Arrays.asList("refill","basic","reset","set","cw","ce","mahoraga","id","ed","nb","save","domaininfo","domainverify","rule");
             }
             else if(args.length==2){
                 if(args[0].equals("basic")){

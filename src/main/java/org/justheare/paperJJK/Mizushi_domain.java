@@ -206,7 +206,7 @@ class Mizushi_effector extends Jdomain_effector{
                             if(living instanceof BlockDisplay){
                                 continue;
                             }
-                            if(living.getLocation().distance(domain.nb_location)< domain.nb_range){
+                            if(living.getLocation().distance(domain.nb_location)< domain.current_radius){
                                 Mizushi mizushi = new Mizushi(domain.owner,"","",true,1, (int) (Math.random() * 7)+5,'a');
                                 mizushi.show=false;
                                 mizushi.sure_hit=true;

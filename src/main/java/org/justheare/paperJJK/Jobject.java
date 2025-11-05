@@ -137,7 +137,9 @@ public class Jobject {
     }
     public Jobject(Entity entity){
         user=entity;
-        uuid=entity.getUniqueId();
+        if(entity != null) {
+            uuid = entity.getUniqueId();
+        }
         new Domain(this);
         //jujuts=new Jujut[10];
     }
@@ -251,6 +253,8 @@ public class Jobject {
                     Mahoraga mahoraga = new Mahoraga(this, spe_name,type,false,power,duration,target);
                     mahoraga.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin,mahoraga,1,1);
                     jujuts.add(mahoraga);
+                    // 저장된 적응 데이터 로드
+                    JData.loadMahoragaAdaptData(mahoraga, this.uuid);
                 }
             }
         }

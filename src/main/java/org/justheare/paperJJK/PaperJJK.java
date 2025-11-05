@@ -28,12 +28,37 @@ public final class PaperJJK extends JavaPlugin {
     @Override
     public void onEnable() {
         jjkplugin= (PaperJJK) Bukkit.getPluginManager().getPlugin("PaperJJK");
+
+        // 데이터 파일 초기화 및 로드
+        JData.init(getDataFolder());
+        JDomainData.init(getDataFolder());
+        JData.loadAllData();
+
         initEvents();
 
         Bukkit.getScheduler().scheduleSyncRepeatingTask(jjkplugin,new manage(),1,1);
+
+        // 자동 저장 태스크 (5분마다)
+        Bukkit.getScheduler().scheduleSyncRepeatingTask(jjkplugin, () -> {
+            JData.saveAllData();
+        }, 6000, 6000); // 6000 ticks = 5분
+
         List<Player> players= (List<Player>) getServer().getOnlinePlayers();
         for(Player player:players){
-            jobjects.add(new Jplayer(player));
+            // 기존 데이터가 있으면 연결, 없으면 새로 생성
+            Jobject existing = null;
+            for(Jobject jo : jobjects){
+                if(jo.uuid != null && jo.uuid.equals(player.getUniqueId())){
+                    existing = jo;
+                    break;
+                }
+            }
+            if(existing != null){
+                existing.user = player;
+                existing.player = player;
+            } else {
+                jobjects.add(new Jplayer(player));
+            }
             //player.setAllowFlight(true);
         }
         getServer().getPluginCommand("jjk").setExecutor(new Jcommand());
@@ -45,6 +70,8 @@ public final class PaperJJK extends JavaPlugin {
     }
     @Override
     public void onDisable() {
+        // 서버 종료 시 모든 데이터 저장
+        JData.saveAllData();
         log("PaperJJK stopped");
     }
     public static void log(String msg){
@@ -52,8 +79,10 @@ public final class PaperJJK extends JavaPlugin {
     }
     public static Jobject getjobject(Entity entity){
         for(int r=0; r<jobjects.size(); r++){
-            if(jobjects.get(r).user.equals(entity)){
-                return jobjects.get(r);
+            if(jobjects.get(r).user!=null){
+                if(jobjects.get(r).user.equals(entity)){
+                    return jobjects.get(r);
+                }
             }
         }
         return null;
