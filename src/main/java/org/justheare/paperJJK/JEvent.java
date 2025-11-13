@@ -22,6 +22,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.justheare.paperJJK.network.KeyStateManager;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -495,6 +496,17 @@ public class JEvent implements Listener {
             event.setJoinMessage("new sorcerer joined");
         }
     }
+
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent event) {
+        Player player = event.getPlayer();
+
+        // 키 상태 초기화
+        KeyStateManager.clearPlayer(player);
+
+        PaperJJK.log("[JEvent] Player " + player.getName() + " quit - key states cleared");
+    }
+
     public boolean useing_jujut(Player player, boolean leftclick,Entity entity){
         ItemStack item=player.getItemInHand();
         if (item.hasItemMeta()&&item.getItemMeta() instanceof BookMeta bookMeta && !bookMeta.getAuthor().isEmpty()) {

@@ -17,7 +17,7 @@ import static org.justheare.paperJJK.PaperJJK.*;
 public class Jobject {
     boolean ish_depence=false;
     Domain domain;
-    Jdomain_innate innate_domain;
+    public Jdomain_innate innate_domain;
     Player player;
     double black_flash_num=0.01;
     int black_flash_tick=0;
@@ -26,16 +26,22 @@ public class Jobject {
     int max_cursecurrent=1;
     int cursecurrent=0;
     boolean reversecurse=false;
+    public boolean is_reversecurse(){
+        return reversecurse;
+    }
     boolean reversecursing=false;
+    public void set_reversecursing(boolean b){
+        reversecursing=b;
+    }
     boolean reversecurse_out=false;
     boolean reversecursing_out=false;
     LivingEntity reversecursing_out_entity;
     boolean cursespirit=false;
-    boolean blocked=true;
+    public boolean blocked=true;
     boolean can_air_surface=false;
-    Entity user;
+    public Entity user;
     UUID uuid;
-    String naturaltech="";
+    public String naturaltech="";
     ArrayList<Jujut> jujuts=new ArrayList<Jujut>();
     Entity cursedentity;
     int infinity_stun_tick=0;

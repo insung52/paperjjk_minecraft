@@ -8,12 +8,15 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.potion.PotionEffectTypeCategory;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.Vector;
+import org.justheare.paperJJK.network.JPacketHandler;
+import org.justheare.paperJJK.network.KeyStateManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -23,11 +26,21 @@ public final class PaperJJK extends JavaPlugin {
     static boolean rule_hud = true;
     static boolean hud_off = false;
     static PaperJJK jjkplugin;
-    static ArrayList<Jobject> jobjects=new ArrayList<>();
-    static ArrayList<Jdomain_expand> expanded_domains=new ArrayList<>();
+    public static ArrayList<Jobject> jobjects=new ArrayList<>();
+    public static ArrayList<Jdomain_expand> expanded_domains=new ArrayList<>();
     @Override
     public void onEnable() {
         jjkplugin= (PaperJJK) Bukkit.getPluginManager().getPlugin("PaperJJK");
+
+        // Plugin Messaging 채널 등록 (클라이언트 모드 통신)
+        Messenger messenger = getServer().getMessenger();
+        JPacketHandler packetHandler = new JPacketHandler(this);
+        messenger.registerIncomingPluginChannel(this, JPacketHandler.CHANNEL, packetHandler);
+        messenger.registerOutgoingPluginChannel(this, JPacketHandler.CHANNEL);
+        log("========================================");
+        log("  Plugin Messaging 채널 등록 완료");
+        log("  채널: " + JPacketHandler.CHANNEL);
+        log("========================================");
 
         // 데이터 파일 초기화 및 로드
         JData.init(getDataFolder());
@@ -183,28 +196,29 @@ class manage implements Runnable{
                 }
             }
             else if(jobject instanceof Jplayer jplayer) {
+                // 키 상태 틱 처리 (매 틱마다)
+                KeyStateManager.tickPlayer(jplayer);
+
                 if (tick % 5 == 0) {
                     if (jplayer.reversecursing) {
+                        jplayer.reversecursing=false;
                         if (jplayer.curseenergy > 0) {
-                            if (jplayer.player.isSneaking()) {
-                                jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH,1, (int) Math.pow(jplayer.getremaincurrent(),0.1)));
-                                List<PotionEffect> potionEffects = (List<PotionEffect>) jplayer.player.getActivePotionEffects();
-                                for (PotionEffect potionEffect : potionEffects) {
-                                    PotionEffectType pet = potionEffect.getType();
-                                    if (pet.getCategory().equals(PotionEffectTypeCategory.HARMFUL)) {
-                                        jplayer.player.removePotionEffect(potionEffect.getType());
-                                        jplayer.player.addPotionEffect(potionEffect.withDuration(potionEffect.getDuration() - jplayer.getremaincurrent() / 100));
-                                    }
-                                    //if(pet.equals(PotionEffectType.POISON)||pet.equals(PotionEffectType.WITHER)||pet.equals(PotionEffectType.LEVITATION)||pet.equals(PotionEffectType.BLINDNESS)||pet.equals(PotionEffectType.DARKNESS)||pet.){
 
-                                    //}
-
+                            jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH,1, (int) Math.pow(jplayer.getremaincurrent(),0.1)));
+                            List<PotionEffect> potionEffects = (List<PotionEffect>) jplayer.player.getActivePotionEffects();
+                            for (PotionEffect potionEffect : potionEffects) {
+                                PotionEffectType pet = potionEffect.getType();
+                                if (pet.getCategory().equals(PotionEffectTypeCategory.HARMFUL)) {
+                                    jplayer.player.removePotionEffect(potionEffect.getType());
+                                    jplayer.player.addPotionEffect(potionEffect.withDuration(potionEffect.getDuration() - jplayer.getremaincurrent() / 100));
                                 }
-                                jplayer.curseenergy -= jplayer.getremaincurrent();
-                            } else {
-                                jplayer.reversecursing = false;
-                                //jplayer.cursecurrent+=jplayer.getremaincurrent();
+                                //if(pet.equals(PotionEffectType.POISON)||pet.equals(PotionEffectType.WITHER)||pet.equals(PotionEffectType.LEVITATION)||pet.equals(PotionEffectType.BLINDNESS)||pet.equals(PotionEffectType.DARKNESS)||pet.){
+
+                                //}
+
                             }
+                            jplayer.curseenergy -= jplayer.getremaincurrent();
+
                         } else {
                             jplayer.reversecursing = false;
                             //jplayer.cursecurrent+=jplayer.getremaincurrent();

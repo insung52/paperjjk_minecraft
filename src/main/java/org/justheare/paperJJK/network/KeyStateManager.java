@@ -1,0 +1,267 @@
+package org.justheare.paperJJK.network;
+
+import org.bukkit.entity.Player;
+import org.justheare.paperJJK.Jplayer;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * 서버 측 키 입력 상태 관리
+ *
+ * 클라이언트에서 PRESSED/RELEASED만 받아서
+ * 서버에서 HELD 상태를 자동으로 판단
+ */
+public class KeyStateManager {
+
+    // 플레이어별 키 상태 (UUID → keyId → boolean)
+    private static final Map<UUID, Map<Byte, Boolean>> keyStates = new HashMap<>();
+
+    // 플레이어별 키 누른 시각 (UUID → keyId → timestamp)
+    private static final Map<UUID, Map<Byte, Long>> pressTimestamps = new HashMap<>();
+
+    /**
+     * 키 눌림 등록
+     * @param player 플레이어
+     * @param keyId 키 ID
+     */
+    public static void onKeyPress(Player player, byte keyId) {
+        UUID uuid = player.getUniqueId();
+
+        keyStates.computeIfAbsent(uuid, k -> new HashMap<>()).put(keyId, true);
+        pressTimestamps.computeIfAbsent(uuid, k -> new HashMap<>()).put(keyId, System.currentTimeMillis());
+    }
+
+    /**
+     * 키 뗌 등록
+     * @param player 플레이어
+     * @param keyId 키 ID
+     * @return 키를 누르고 있던 시간 (밀리초), 누르지 않았던 키면 0
+     */
+    public static long onKeyRelease(Player player, byte keyId) {
+        UUID uuid = player.getUniqueId();
+
+        Map<Byte, Boolean> states = keyStates.get(uuid);
+        Map<Byte, Long> timestamps = pressTimestamps.get(uuid);
+
+        if (states != null && timestamps != null) {
+            states.put(keyId, false);
+
+            // 지속시간 계산
+            Long pressTime = timestamps.get(keyId);
+            if (pressTime != null) {
+                return System.currentTimeMillis() - pressTime;
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * 키가 눌려있는지 확인
+     * @param player 플레이어
+     * @param keyId 키 ID
+     * @return true: 현재 누르고 있음, false: 누르지 않음
+     */
+    public static boolean isKeyPressed(Player player, byte keyId) {
+        Map<Byte, Boolean> states = keyStates.get(player.getUniqueId());
+        return states != null && states.getOrDefault(keyId, false);
+    }
+
+    /**
+     * 키를 누르고 있는 시간 (밀리초)
+     * @param player 플레이어
+     * @param keyId 키 ID
+     * @return 누르고 있는 시간 (밀리초), 누르지 않았으면 0
+     */
+    public static long getHeldDuration(Player player, byte keyId) {
+        UUID uuid = player.getUniqueId();
+        Map<Byte, Boolean> states = keyStates.get(uuid);
+        Map<Byte, Long> timestamps = pressTimestamps.get(uuid);
+
+        if (states != null && timestamps != null && states.getOrDefault(keyId, false)) {
+            Long pressTime = timestamps.get(keyId);
+            if (pressTime != null) {
+                return System.currentTimeMillis() - pressTime;
+            }
+        }
+        return 0;
+    }
+
+    /**
+     * 모든 키 상태 초기화 (플레이어 나갈 때)
+     * @param player 플레이어
+     */
+    public static void clearPlayer(Player player) {
+        UUID uuid = player.getUniqueId();
+        keyStates.remove(uuid);
+        pressTimestamps.remove(uuid);
+    }
+
+    /**
+     * 특정 키 상태 초기화
+     * @param player 플레이어
+     * @param keyId 키 ID
+     */
+    public static void clearKey(Player player, byte keyId) {
+        UUID uuid = player.getUniqueId();
+        Map<Byte, Boolean> states = keyStates.get(uuid);
+        Map<Byte, Long> timestamps = pressTimestamps.get(uuid);
+
+        if (states != null) {
+            states.remove(keyId);
+        }
+        if (timestamps != null) {
+            timestamps.remove(keyId);
+        }
+    }
+
+    /**
+     * 서버 틱마다 호출 - HELD 상태 체크
+     * @param jplayer Jplayer 객체
+     */
+    public static void tickPlayer(Jplayer jplayer) {
+        if (jplayer == null || jplayer.user == null) return;
+        if (jplayer.user instanceof Player player){
+
+            UUID uuid = player.getUniqueId();
+            Map<Byte, Boolean> states = keyStates.get(uuid);
+            Map<Byte, Long> timestamps = pressTimestamps.get(uuid);
+
+            if (states == null || timestamps == null) return;
+
+            long now = System.currentTimeMillis();
+
+            // Build held durations map for currently pressed keys
+            Map<Byte, Long> heldDurations = new HashMap<>();
+            for (Map.Entry<Byte, Boolean> entry : states.entrySet()) {
+                byte keyId = entry.getKey();
+                boolean isPressed = entry.getValue();
+
+                if (isPressed) {
+                    Long pressTime = timestamps.get(keyId);
+                    if (pressTime != null) {
+                        heldDurations.put(keyId, now - pressTime);
+                    }
+                }
+            }
+
+            // Call onKeyHeld with all key states and durations
+            if (!heldDurations.isEmpty()) {
+                onKeyHeld(jplayer, states, heldDurations);
+            }
+        }
+
+    }
+
+    /**
+     * 키 HELD 이벤트 처리 (매 틱마다 호출)
+     * 키 조합을 감지하여 처리
+     *
+     * @param jplayer Jplayer 객체
+     * @param keyStatesMap 모든 키의 현재 상태 (키ID → 눌림 여부)
+     * @param heldDurationsMap 현재 눌린 키들의 지속시간 (키ID → 밀리초)
+     */
+    private static void onKeyHeld(Jplayer jplayer, Map<Byte, Boolean> keyStatesMap, Map<Byte, Long> heldDurationsMap) {
+        Player player = (Player) jplayer.user;
+        if(jplayer.is_reversecurse() && isKeyHeld(PacketIds.KeyBinds.RCT,keyStatesMap)){
+
+            handleRCTHeld(jplayer);
+            jplayer.set_reversecursing(true);
+        }
+        // Check for key combinations first (priority order)
+        /*
+        // Example: Z + X combination (RCT + Technique Slot 1)
+        if (isKeyHeld(PacketIds.KeyBinds.RCT, keyStatesMap) &&
+            isKeyHeld(PacketIds.KeyBinds.TECHNIQUE_SLOT_1, keyStatesMap)) {
+            long rctDuration = heldDurationsMap.getOrDefault(PacketIds.KeyBinds.RCT, 0L);
+            long slot1Duration = heldDurationsMap.getOrDefault(PacketIds.KeyBinds.TECHNIQUE_SLOT_1, 0L);
+            handleRCTPlusTechniqueCombo(player, jplayer, rctDuration, slot1Duration);
+            return; // Combination handled, skip individual key processing
+        }
+
+        // Example: G + X combination (Barrier + Technique Slot 1)
+        if (isKeyHeld(PacketIds.KeyBinds.BARRIER_TECHNIQUE, keyStatesMap) &&
+            isKeyHeld(PacketIds.KeyBinds.TECHNIQUE_SLOT_1, keyStatesMap)) {
+            long barrierDuration = heldDurationsMap.getOrDefault(PacketIds.KeyBinds.BARRIER_TECHNIQUE, 0L);
+            long slot1Duration = heldDurationsMap.getOrDefault(PacketIds.KeyBinds.TECHNIQUE_SLOT_1, 0L);
+            handleBarrierPlusTechniqueCombo(player, jplayer, barrierDuration, slot1Duration);
+            return;
+        }
+
+        // TODO: Add more key combinations here
+
+        // If no combination matched, process individual keys
+        for (Map.Entry<Byte, Long> entry : heldDurationsMap.entrySet()) {
+            byte keyId = entry.getKey();
+            long duration = entry.getValue();
+
+            switch (keyId) {
+                case PacketIds.KeyBinds.RCT -> {
+                    // Z key: Reverse Cursed Technique (held continuously)
+                    handleRCTHeld(player, jplayer, duration);
+                }
+                case PacketIds.KeyBinds.BARRIER_TECHNIQUE -> {
+                    // G key: Barrier technique charging
+                    handleBarrierChargingHeld(player, jplayer, duration);
+                }
+                case PacketIds.KeyBinds.TECHNIQUE_SLOT_1 -> {
+                    // X key: Technique Slot 1 charging
+                    handleTechniqueSlotHeld(player, jplayer, 1, duration);
+                }
+                case PacketIds.KeyBinds.TECHNIQUE_SLOT_2 -> {
+                    // C key: Technique Slot 2 charging
+                    handleTechniqueSlotHeld(player, jplayer, 2, duration);
+                }
+                case PacketIds.KeyBinds.TECHNIQUE_SLOT_3 -> {
+                    // V key: Technique Slot 3 charging
+                    handleTechniqueSlotHeld(player, jplayer, 3, duration);
+                }
+                case PacketIds.KeyBinds.TECHNIQUE_SLOT_4 -> {
+                    // B key: Technique Slot 4 charging
+                    handleTechniqueSlotHeld(player, jplayer, 4, duration);
+                }
+            }
+        }
+
+        */
+    }
+
+    /**
+     * Helper: Check if a specific key is currently held
+     */
+    private static boolean isKeyHeld(byte keyId, Map<Byte, Boolean> keyStatesMap) {
+        return keyStatesMap.getOrDefault(keyId, false);
+    }
+
+    // ===== Key combination handlers (priority) =====
+
+    private static void handleRCTPlusTechniqueCombo(Player player, Jplayer jplayer, long rctDuration, long techniqueDuration) {
+        // TODO: RCT + Technique combination logic
+        // Example: Enhanced technique with healing effect
+        // player.sendMessage("§a[Z+X Combo] RCT Enhanced Technique!");
+    }
+
+    private static void handleBarrierPlusTechniqueCombo(Player player, Jplayer jplayer, long barrierDuration, long techniqueDuration) {
+        // TODO: Barrier + Technique combination logic
+        // Example: Defensive barrier while casting technique
+        // player.sendMessage("§e[G+X Combo] Barrier Protected Technique!");
+    }
+
+    // ===== Individual key HELD handlers =====
+
+    private static void handleRCTHeld(Jplayer jplayer) {
+        jplayer.set_reversecursing(true);
+    }
+
+    private static void handleBarrierChargingHeld(Player player, Jplayer jplayer, long heldDuration) {
+        // TODO: Barrier charging logic
+        // Example: Increase barrier power based on hold duration
+    }
+
+    private static void handleTechniqueSlotHeld(Player player, Jplayer jplayer, int slotNumber, long heldDuration) {
+        // TODO: Technique slot charging logic
+        // Example: Charge technique power based on hold duration
+    }
+}
