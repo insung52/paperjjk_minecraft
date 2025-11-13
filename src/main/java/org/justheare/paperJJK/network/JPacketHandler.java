@@ -2,13 +2,12 @@ package org.justheare.paperJJK.network;
 
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteStreams;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
 import org.jetbrains.annotations.NotNull;
-import org.justheare.paperJJK.Jobject;
-import org.justheare.paperJJK.Jplayer;
-import org.justheare.paperJJK.PaperJJK;
+import org.justheare.paperJJK.*;
 
 import java.util.logging.Logger;
 
@@ -149,16 +148,117 @@ public class JPacketHandler implements PluginMessageListener {
             return;
         }
 
+        String skillId = jplayer.getSlotSkill(slot);
+        if (skillId == null) {
+            logger.warning(String.format("[Technique] Invalid slot: %d (Player: %s)", slot, player.getName()));
+            return;
+        }
+
+        // DEBUG: Print all slot configurations
+        logger.info(String.format("[DEBUG] Player %s slot config: 1=%s, 2=%s, 3=%s, 4=%s",
+            player.getName(),
+            jplayer.slot1Skill,
+            jplayer.slot2Skill,
+            jplayer.slot3Skill,
+            jplayer.slot4Skill));
+
         switch (action) {
             case PacketIds.SkillAction.START -> {
-                logger.info(String.format("[Technique START] %s: Slot %d charging", player.getName(), slot));
-                // TODO: Start technique charging
+                // Check if there's ANY existing skill for this slot (charging or active)
+                Jujut existingJujut = findAnyJujutForSlot(jplayer, slot);
+
+                if (existingJujut != null) {
+                    // Skill already exists for this slot
+                    if (existingJujut.charging) {
+                        // Already charging, ignore
+                        logger.info(String.format("[Technique] %s: Slot %d (%s) already charging, ignoring",
+                            player.getName(), slot, skillId));
+                        return;
+                    } else if (existingJujut.canRecharge()) {
+                        // Active and rechargeable, start recharge
+                        existingJujut.startRecharge();
+                        logger.info(String.format("[Technique RECHARGE START] %s: Slot %d (%s) recharging",
+                            player.getName(), slot, skillId));
+                        return;
+                    } else {
+                        // Active but not rechargeable, ignore (don't create new skill)
+                        logger.info(String.format("[Technique] %s: Slot %d (%s) already active and not rechargeable, ignoring",
+                            player.getName(), slot, skillId));
+                        return;
+                    }
+                }
+
+                // No existing skill, create new one
+                Jujut jujut = JujutFactory.createJujut(skillId, jplayer, 100, 100);
+                if (jujut != null) {
+                    jplayer.jujuts.add(jujut);
+                    jujut.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(
+                        PaperJJK.jjkplugin, jujut, 1, 1);
+                    logger.info(String.format("[Technique START] %s: Slot %d (%s) charging started",
+                        player.getName(), slot, skillId));
+                } else {
+                    logger.warning(String.format("[Technique] Failed to create skill: %s (Player: %s)",
+                        skillId, player.getName()));
+                }
             }
             case PacketIds.SkillAction.END -> {
-                logger.info(String.format("[Technique CAST] %s: Slot %d released", player.getName(), slot));
-                // TODO: Cast technique
+                // Stop charging and cast/activate the skill
+                Jujut jujut = findChargingJujutForSlot(jplayer, slot);
+                if (jujut != null) {
+                    jujut.stopCharging();
+                    logger.info(String.format("[Technique CAST] %s: Slot %d (%s) activated/recharged",
+                        player.getName(), slot, skillId));
+                } else {
+                    logger.info(String.format("[Technique END] %s: No charging skill found for slot %d",
+                        player.getName(), slot));
+                }
             }
         }
+    }
+
+    /**
+     * Find ANY Jujut (charging or active) for a specific slot
+     */
+    private Jujut findAnyJujutForSlot(Jplayer jplayer, byte slot) {
+        String skillId = jplayer.getSlotSkill(slot);
+        if (skillId == null) return null;
+
+        for (Jujut jujut : jplayer.jujuts) {
+            if (jujut.skillId.equals(skillId)) {
+                return jujut;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find active (not charging) rechargeable Jujut for a specific slot
+     */
+    private Jujut findActiveJujutForSlot(Jplayer jplayer, byte slot) {
+        String skillId = jplayer.getSlotSkill(slot);
+        if (skillId == null) return null;
+
+        for (Jujut jujut : jplayer.jujuts) {
+            if (jujut.skillId.equals(skillId) && jujut.active && !jujut.charging) {
+                return jujut;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find currently charging Jujut for a specific slot
+     */
+    private Jujut findChargingJujutForSlot(Jplayer jplayer, byte slot) {
+        String skillId = jplayer.getSlotSkill(slot);
+        if (skillId == null) return null;
+
+        for (Jujut jujut : jplayer.jujuts) {
+            if (jujut.skillId.equals(skillId) && jujut.charging) {
+                return jujut;
+            }
+        }
+        return null;
     }
 
     /**
@@ -176,16 +276,58 @@ public class JPacketHandler implements PluginMessageListener {
             return;
         }
 
+        // Get the base skill and find its reverse
+        String baseSkillId = jplayer.getSlotSkill(slot);
+        if (baseSkillId == null) {
+            logger.warning(String.format("[Reverse Technique] Invalid slot: %d (Player: %s)", slot, player.getName()));
+            return;
+        }
+
+        String reverseSkillId = JujutFactory.getReverseSkillId(baseSkillId);
+        if (reverseSkillId == null) {
+            logger.warning(String.format("[Reverse Technique] Skill %s has no reverse (Player: %s, Slot: %d)",
+                baseSkillId, player.getName(), slot));
+            player.sendMessage("§cThis skill cannot be reversed!");
+            return;
+        }
+
         switch (action) {
             case PacketIds.SkillAction.START -> {
-                logger.info(String.format("[Reverse Technique START] %s: Slot %d charging", player.getName(), slot));
-                // TODO: Start reverse technique charging
+                // Create reverse skill (aka cannot be recharged)
+                Jujut jujut = JujutFactory.createJujut(reverseSkillId, jplayer, 100, 100);
+                if (jujut != null) {
+                    jplayer.jujuts.add(jujut);
+                    jujut.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(
+                        PaperJJK.jjkplugin, jujut, 1, 1);
+                    logger.info(String.format("[Reverse Technique START] %s: Slot %d (%s -> %s) charging",
+                        player.getName(), slot, baseSkillId, reverseSkillId));
+                } else {
+                    logger.warning(String.format("[Reverse Technique] Failed to create skill: %s (Player: %s)",
+                        reverseSkillId, player.getName()));
+                }
             }
             case PacketIds.SkillAction.END -> {
-                logger.info(String.format("[Reverse Technique CAST] %s: Slot %d released", player.getName(), slot));
-                // TODO: Cast reverse technique
+                // Stop charging and cast
+                Jujut jujut = findChargingReverseTechnique(jplayer, reverseSkillId);
+                if (jujut != null) {
+                    logger.info(String.format("[Reverse Technique CAST] %s: Slot %d (%s) released",
+                        player.getName(), slot, reverseSkillId));
+                    // maintick() will handle the charging=false transition
+                }
             }
         }
+    }
+
+    /**
+     * Find currently charging reverse technique Jujut
+     */
+    private Jujut findChargingReverseTechnique(Jplayer jplayer, String reverseSkillId) {
+        for (Jujut jujut : jplayer.jujuts) {
+            if (jujut.skillId.equals(reverseSkillId) && jujut.charging) {
+                return jujut;
+            }
+        }
+        return null;
     }
 
     /**
@@ -202,8 +344,28 @@ public class JPacketHandler implements PluginMessageListener {
             return;
         }
 
-        logger.info(String.format("[Skill TERMINATE] %s: Terminating slot %d", player.getName(), slot));
-        // TODO: Terminate active skill
+        String skillId = jplayer.getSlotSkill(slot);
+        if (skillId == null) {
+            logger.warning(String.format("[Skill Terminate] Invalid slot: %d (Player: %s)", slot, player.getName()));
+            return;
+        }
+
+        // Find and disable all active/charging skills for this slot
+        boolean terminated = false;
+        for (int i = jplayer.jujuts.size() - 1; i >= 0; i--) {
+            Jujut jujut = jplayer.jujuts.get(i);
+            if (jujut.skillId.equals(skillId)) {
+                jujut.disables();
+                terminated = true;
+                logger.info(String.format("[Skill TERMINATE] %s: Terminated %s (Slot %d)",
+                    player.getName(), skillId, slot));
+            }
+        }
+
+        if (!terminated) {
+            logger.info(String.format("[Skill TERMINATE] %s: No active skill found for slot %d (%s)",
+                player.getName(), slot, skillId));
+        }
     }
 
     /**

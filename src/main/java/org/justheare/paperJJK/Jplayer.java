@@ -19,10 +19,52 @@ public class Jplayer extends Jobject{
     private Score score_speed;
     private Score[] score_jj=new Score[3000];
 
+    // Skill slot configuration (X, C, V, B keys)
+    public String slot1Skill = "infinity_ao";       // X key
+    public String slot2Skill = "infinity_ao";       // C key
+    public String slot3Skill = "infinity_aka";      // V key
+    public String slot4Skill = "infinity_passive";  // B key
+
     public Jplayer(Entity entity) {
         super(entity);
         player= (Player) user;
 
+    }
+
+    /**
+     * Get the skill ID configured for a specific slot
+     * @param slot Slot number (1-4)
+     * @return Skill ID or null if invalid slot
+     */
+    public String getSlotSkill(byte slot) {
+        return switch (slot) {
+            case 1 -> slot1Skill;
+            case 2 -> slot2Skill;
+            case 3 -> slot3Skill;
+            case 4 -> slot4Skill;
+            default -> null;
+        };
+    }
+
+    /**
+     * Set the skill ID for a specific slot
+     * @param slot Slot number (1-4)
+     * @param skillId Skill ID to set
+     * @return true if successful
+     */
+    public boolean setSlotSkill(byte slot, String skillId) {
+        if (!JujutFactory.isValidSkillId(skillId)) {
+            return false;
+        }
+
+        switch (slot) {
+            case 1 -> slot1Skill = skillId;
+            case 2 -> slot2Skill = skillId;
+            case 3 -> slot3Skill = skillId;
+            case 4 -> slot4Skill = skillId;
+            default -> { return false; }
+        }
+        return true;
     }
     int air_surface_tick=0;
     public void air_surface(){

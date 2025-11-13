@@ -87,6 +87,14 @@ public class JData {
             }
         }
 
+        // Skill slot configuration (for Jplayer only)
+        if (jobject instanceof Jplayer jplayer) {
+            dataConfig.set(path + ".slot1Skill", jplayer.slot1Skill);
+            dataConfig.set(path + ".slot2Skill", jplayer.slot2Skill);
+            dataConfig.set(path + ".slot3Skill", jplayer.slot3Skill);
+            dataConfig.set(path + ".slot4Skill", jplayer.slot4Skill);
+        }
+
         // Mahoraga 적응 데이터
         if (jobject.naturaltech.equals("mahoraga") && !jobject.jujuts.isEmpty() && jobject.jujuts.get(0) instanceof Mahoraga) {
             Mahoraga mahoraga = (Mahoraga) jobject.jujuts.get(0);
@@ -165,6 +173,19 @@ public class JData {
                      ", max_curseenergy: " + existingJobject.max_curseenergy +
                      ", blocked: " + existingJobject.blocked +
                      ", can_air_surface: " + existingJobject.can_air_surface);
+
+        // Skill slot configuration (for Jplayer only)
+        if (existingJobject instanceof Jplayer jplayer) {
+            jplayer.slot1Skill = dataConfig.getString(path + ".slot1Skill", "infinity_ao");
+            jplayer.slot2Skill = dataConfig.getString(path + ".slot2Skill", "infinity_ao");
+            jplayer.slot3Skill = dataConfig.getString(path + ".slot3Skill", "infinity_aka");
+            jplayer.slot4Skill = dataConfig.getString(path + ".slot4Skill", "infinity_passive");
+
+            PaperJJK.log("[JData] Loaded slot config - 1:" + jplayer.slot1Skill +
+                         ", 2:" + jplayer.slot2Skill +
+                         ", 3:" + jplayer.slot3Skill +
+                         ", 4:" + jplayer.slot4Skill);
+        }
 
         // Innate Domain 생성 및 로드
         if (dataConfig.contains(path + ".innate_domain")) {

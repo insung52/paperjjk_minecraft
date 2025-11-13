@@ -14,7 +14,7 @@ public class Jujut implements Runnable{
     public Entity m_target;
     int delay=0;
     boolean show=true;
-    protected int tasknum;
+    public int tasknum;
     String spe_name;
     public Jobject jobject;
     int power;
@@ -32,7 +32,10 @@ public class Jujut implements Runnable{
     double distance=1;
     double speed=0;
     boolean reversecurse;
-    boolean charging=true;
+    public boolean charging=true;
+    public boolean rechargeable=false;  // Can be recharged after initial cast
+    public boolean active=false;         // Skill has been cast (not charging anymore)
+    public String skillId="";            // Skill identifier (e.g., "infinity_ao")
     Vector direction=new Vector(0,0,0);
     Entity user;
     List<Entity> j_entities;
@@ -98,18 +101,9 @@ public class Jujut implements Runnable{
     public void maintick(){
         jobject.curseenergy-=power*efficiency;
         if(charging){
-            if(!user.isSneaking()){
-
-                charging=false;
-                if(user instanceof Player player){
-                    player.setCooldown(Material.WRITTEN_BOOK,0);
-                }
-                charged();
-            }
-            else {
-                if(use_power<power){
-                    use_power++;
-                }
+            // Charging continues - power accumulates
+            if(use_power<power){
+                use_power++;
             }
         }
         else if(delay<=0){
@@ -121,6 +115,40 @@ public class Jujut implements Runnable{
         if(time<=0||use_power<1){
             disables();
         }
+    }
+
+    /**
+     * Start recharging an already active skill
+     * @return true if recharge started successfully
+     */
+    public boolean startRecharge() {
+        if (!rechargeable || !active || charging) {
+            return false;
+        }
+        charging = true;
+        return true;
+    }
+
+    /**
+     * Stop charging/recharging and activate the skill
+     */
+    public void stopCharging() {
+        if (charging) {
+            charging = false;
+            if (!active) {
+                // First time activation
+                active = true;
+                charged();
+            }
+            // If already active, this was a recharge - power already accumulated
+        }
+    }
+
+    /**
+     * Check if this skill can be recharged
+     */
+    public boolean canRecharge() {
+        return rechargeable && active && !charging;
     }
     public String toname(){
         return "";

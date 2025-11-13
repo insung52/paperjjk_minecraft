@@ -24,7 +24,7 @@ public final class PaperJJK extends JavaPlugin {
     static boolean rule_breakblock=true;
     static boolean rule_hud = true;
     static boolean hud_off = false;
-    static PaperJJK jjkplugin;
+    public static PaperJJK jjkplugin;
     public static ArrayList<Jobject> jobjects=new ArrayList<>();
     public static ArrayList<Jdomain_expand> expanded_domains=new ArrayList<>();
     @Override

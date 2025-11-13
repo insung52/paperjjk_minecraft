@@ -42,7 +42,7 @@ public class Jobject {
     public Entity user;
     UUID uuid;
     public String naturaltech="";
-    ArrayList<Jujut> jujuts=new ArrayList<Jujut>();
+    public ArrayList<Jujut> jujuts=new ArrayList<Jujut>();
     Entity cursedentity;
     int infinity_stun_tick=0;
     public void black_flash(){
