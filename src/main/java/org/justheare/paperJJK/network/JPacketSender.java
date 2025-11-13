@@ -15,13 +15,13 @@ public class JPacketSender {
     private static final String CHANNEL = JPacketHandler.CHANNEL;
 
     /**
-     * TECHNIQUE_USE (0x02) - 술식 사용 결과 전송
+     * TECHNIQUE_FEEDBACK (0x10) - 술식 사용 결과 전송
      */
     public static void sendTechniqueResult(Player player, boolean success, int techniqueId,
                                            byte reason, String message) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
-            out.writeByte(PacketIds.TECHNIQUE_USE);
+            out.writeByte(PacketIds.TECHNIQUE_FEEDBACK);
             out.writeBoolean(success);
             out.writeInt(techniqueId);
             out.writeByte(reason);
@@ -30,17 +30,17 @@ public class JPacketSender {
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[패킷 전송] TECHNIQUE_USE → %s: success=%b, id=%d, reason=0x%02X, msg=%s",
+            logger.info(String.format("[Packet Send] TECHNIQUE_FEEDBACK → %s: success=%b, id=%d, reason=0x%02X, msg=%s",
                     player.getName(), success, techniqueId, reason, message));
         } catch (Exception e) {
-            logger.severe(String.format("TECHNIQUE_USE 패킷 전송 실패 (%s): %s",
+            logger.severe(String.format("TECHNIQUE_FEEDBACK packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
             e.printStackTrace();
         }
     }
 
     /**
-     * DOMAIN_VISUAL (0x03) - 도메인 시각 효과 전송
+     * DOMAIN_VISUAL (0x11) - Domain visual effects
      */
     public static void sendDomainVisual(Player player, byte action, int domainType,
                                         Location center, int radius, int colorRGB, int duration) {
@@ -59,17 +59,17 @@ public class JPacketSender {
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[패킷 전송] DOMAIN_VISUAL → %s: action=%d, type=%d, radius=%d",
+            logger.info(String.format("[Packet Send] DOMAIN_VISUAL → %s: action=%d, type=%d, radius=%d",
                     player.getName(), action, domainType, radius));
         } catch (Exception e) {
-            logger.severe(String.format("DOMAIN_VISUAL 패킷 전송 실패 (%s): %s",
+            logger.severe(String.format("DOMAIN_VISUAL packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
             e.printStackTrace();
         }
     }
 
     /**
-     * CE_UPDATE (0x04) - 주술력 정보 업데이트
+     * CE_UPDATE (0x12) - Cursed energy update
      */
     public static void sendCEUpdate(Player player, int currentCE, int maxCE, float regenRate,
                                     String technique, boolean blocked) {
@@ -85,17 +85,17 @@ public class JPacketSender {
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.fine(String.format("[패킷 전송] CE_UPDATE → %s: %d/%d, 술식=%s, blocked=%b",
+            logger.fine(String.format("[Packet Send] CE_UPDATE → %s: %d/%d, technique=%s, blocked=%b",
                     player.getName(), currentCE, maxCE, technique, blocked));
         } catch (Exception e) {
-            logger.severe(String.format("CE_UPDATE 패킷 전송 실패 (%s): %s",
+            logger.severe(String.format("CE_UPDATE packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
             e.printStackTrace();
         }
     }
 
     /**
-     * TECHNIQUE_COOLDOWN (0x05) - 쿨다운 정보
+     * TECHNIQUE_COOLDOWN (0x13) - Cooldown info
      */
     public static void sendTechniqueCooldown(Player player, byte techniqueSlot,
                                              int cooldownTicks, int maxCooldown) {
@@ -109,17 +109,17 @@ public class JPacketSender {
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.fine(String.format("[패킷 전송] TECHNIQUE_COOLDOWN → %s: slot=%d, %d/%d",
+            logger.fine(String.format("[Packet Send] TECHNIQUE_COOLDOWN → %s: slot=%d, %d/%d",
                     player.getName(), techniqueSlot, cooldownTicks, maxCooldown));
         } catch (Exception e) {
-            logger.severe(String.format("TECHNIQUE_COOLDOWN 패킷 전송 실패 (%s): %s",
+            logger.severe(String.format("TECHNIQUE_COOLDOWN packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
             e.printStackTrace();
         }
     }
 
     /**
-     * PARTICLE_EFFECT (0x06) - 커스텀 파티클
+     * PARTICLE_EFFECT (0x14) - Custom particles
      */
     public static void sendParticleEffect(Player player, byte effectType, Location location,
                                           float velocityX, float velocityY, float velocityZ,
@@ -141,17 +141,17 @@ public class JPacketSender {
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.fine(String.format("[패킷 전송] PARTICLE_EFFECT → %s: type=%d, loc=(%.1f,%.1f,%.1f)",
+            logger.fine(String.format("[Packet Send] PARTICLE_EFFECT → %s: type=%d, loc=(%.1f,%.1f,%.1f)",
                     player.getName(), effectType, location.getX(), location.getY(), location.getZ()));
         } catch (Exception e) {
-            logger.severe(String.format("PARTICLE_EFFECT 패킷 전송 실패 (%s): %s",
+            logger.severe(String.format("PARTICLE_EFFECT packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
             e.printStackTrace();
         }
     }
 
     /**
-     * SCREEN_EFFECT (0x07) - 화면 효과
+     * SCREEN_EFFECT (0x15) - Screen effects
      */
     public static void sendScreenEffect(Player player, byte effectType, float intensity,
                                         int duration, byte[] additionalData) {
@@ -167,33 +167,33 @@ public class JPacketSender {
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[패킷 전송] SCREEN_EFFECT → %s: type=%d, intensity=%.2f, duration=%d",
+            logger.info(String.format("[Packet Send] SCREEN_EFFECT → %s: type=%d, intensity=%.2f, duration=%d",
                     player.getName(), effectType, intensity, duration));
         } catch (Exception e) {
-            logger.severe(String.format("SCREEN_EFFECT 패킷 전송 실패 (%s): %s",
+            logger.severe(String.format("SCREEN_EFFECT packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
             e.printStackTrace();
         }
     }
 
     /**
-     * HANDSHAKE (0x08) - 핸드셰이크 응답
+     * HANDSHAKE (0x20) - Handshake response
      */
     public static void sendHandshake(Player player) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.HANDSHAKE);
-            out.writeInt(1); // 프로토콜 버전
-            out.writeUTF("PaperJJK-1.0.0"); // 플러그인 버전
-            out.writeInt(0x07); // 지원 기능 (HUD + 파티클 + 셰이더)
+            out.writeInt(1); // Protocol version
+            out.writeUTF("PaperJJK-1.0.0"); // Plugin version
+            out.writeInt(0x07); // Supported features (HUD + Particles + Shaders)
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[패킷 전송] HANDSHAKE → %s: 프로토콜=1, 버전=PaperJJK-1.0.0",
+            logger.info(String.format("[Packet Send] HANDSHAKE → %s: protocol=1, version=PaperJJK-1.0.0",
                     player.getName()));
         } catch (Exception e) {
-            logger.severe(String.format("HANDSHAKE 패킷 전송 실패 (%s): %s",
+            logger.severe(String.format("HANDSHAKE packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
             e.printStackTrace();
         }

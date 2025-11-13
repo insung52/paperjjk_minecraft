@@ -7,40 +7,52 @@ package org.justheare.paperJJK.network;
  * 클라이언트 모드와 동일한 ID 사용
  */
 public class PacketIds {
-    // Client → Server
-    public static final byte KEYBIND_PRESS = 0x01;
+    // Client → Server: Skill Usage Packets
+    public static final byte SKILL_RCT = 0x01;              // RCT healing start/end
+    public static final byte SKILL_SIMPLE_DOMAIN = 0x02;    // Simple Domain charge start/end
+    public static final byte SKILL_TECHNIQUE = 0x03;        // Technique slot 1-4 charge/cast
+    public static final byte SKILL_REVERSE_TECHNIQUE = 0x04; // Reverse technique (Z + slot) charge/cast
+    public static final byte SKILL_TERMINATE = 0x05;        // Terminate active skill
+    public static final byte SKILL_CONTROL = 0x06;          // Control active skill
+    public static final byte SKILL_CONFIG = 0x07;           // Configure skill settings
+    public static final byte SKILL_DISTANCE = 0x09;         // Adjust skill spawn distance (scroll)
+    public static final byte DOMAIN_EXPANSION = 0x08;       // Domain expansion start/end
 
     // Server → Client
-    public static final byte TECHNIQUE_USE = 0x02;
-    public static final byte DOMAIN_VISUAL = 0x03;
-    public static final byte CE_UPDATE = 0x04;
-    public static final byte TECHNIQUE_COOLDOWN = 0x05;
-    public static final byte PARTICLE_EFFECT = 0x06;
-    public static final byte SCREEN_EFFECT = 0x07;
+    public static final byte TECHNIQUE_FEEDBACK = 0x10;     // Technique success/failure feedback
+    public static final byte DOMAIN_VISUAL = 0x11;          // Domain visual effects
+    public static final byte CE_UPDATE = 0x12;              // Cursed energy update
+    public static final byte TECHNIQUE_COOLDOWN = 0x13;     // Cooldown notification
+    public static final byte PARTICLE_EFFECT = 0x14;        // Particle effects
+    public static final byte SCREEN_EFFECT = 0x15;          // Screen effects
 
     // Bidirectional
-    public static final byte HANDSHAKE = 0x08;
+    public static final byte HANDSHAKE = 0x20;
 
     /**
-     * Keybind Key IDs (keyId field in KEYBIND_PRESS packet)
+     * Skill Action Type (action field in skill packets)
      */
-    public static class KeyBinds {
-        public static final byte DOMAIN_EXPANSION = 0x01;  // R - Domain Expansion
-        public static final byte BARRIER_TECHNIQUE = 0x02;  // G - Barrier Technique
-        public static final byte RCT = 0x03;  // Z - Reverse Cursed Technique (RCT)
-        public static final byte TECHNIQUE_SLOT_1 = 0x04;  // X - Technique Slot 1
-        public static final byte TECHNIQUE_SLOT_2 = 0x05;  // C - Technique Slot 2
-        public static final byte TECHNIQUE_SLOT_3 = 0x10;  // V - Technique Slot 3
-        public static final byte TECHNIQUE_SLOT_4 = 0x11;  // B - Technique Slot 4
+    public static class SkillAction {
+        public static final byte START = 0x01;      // Start charging/activation
+        public static final byte END = 0x02;        // End/release/cast
     }
 
     /**
-     * Key State (keyState field in KEYBIND_PRESS packet)
+     * Technique Slot (slot field in SKILL_TECHNIQUE packets)
      */
-    public static class KeyState {
-        public static final byte RELEASED = 0;
-        public static final byte PRESSED = 1;
-        public static final byte HELD = 2;
+    public static class TechniqueSlot {
+        public static final byte SLOT_1 = 0x01;  // X key
+        public static final byte SLOT_2 = 0x02;  // C key
+        public static final byte SLOT_3 = 0x03;  // V key
+        public static final byte SLOT_4 = 0x04;  // B key
+    }
+
+    /**
+     * Domain Expansion Flags (flags field in DOMAIN_EXPANSION packet)
+     */
+    public static class DomainFlags {
+        public static final byte NORMAL = 0x00;          // Normal domain with barrier
+        public static final byte NO_BARRIER = 0x01;      // No barrier domain (Shift + R)
     }
 
     /**

@@ -165,11 +165,40 @@ public class KeyStateManager {
      */
     private static void onKeyHeld(Jplayer jplayer, Map<Byte, Boolean> keyStatesMap, Map<Byte, Long> heldDurationsMap) {
         Player player = (Player) jplayer.user;
-        if(jplayer.is_reversecurse() && isKeyHeld(PacketIds.KeyBinds.RCT,keyStatesMap)){
 
-            handleRCTHeld(jplayer);
-            jplayer.set_reversecursing(true);
+        // reverse curse
+        if(jplayer.is_reversecurse() && isKeyHeld(PacketIds.KeyBinds.RCT,keyStatesMap)){
+            // reversed cursed technic
+            if(isKeyHeld(PacketIds.KeyBinds.TECHNIQUE_SLOT_1,keyStatesMap)){
+                player.sendMessage("r c t");
+
+            }
+
+            // reverse curse
+            else if(player.isSneaking()){
+                handleRCTHeld(jplayer);
+            }
         }
+        // domain expansion
+        else if(isKeyHeld(PacketIds.KeyBinds.BARRIER_TECHNIQUE,keyStatesMap)){
+            // domain expansion without barrier
+            if(isKeyHeld(PacketIds.KeyBinds.DOMAIN_EXPANSION,keyStatesMap)) {
+                player.sendMessage("nb expansion");
+            }
+            // simple domain
+            else if(player.isSneaking()) {
+                player.sendMessage("s d");
+            }
+        }
+
+
+        // cursed technic
+        else if(isKeyHeld(PacketIds.KeyBinds.TECHNIQUE_SLOT_1,keyStatesMap)){
+            player.sendMessage("c t");
+        }
+        //
+
+
         // Check for key combinations first (priority order)
         /*
         // Example: Z + X combination (RCT + Technique Slot 1)

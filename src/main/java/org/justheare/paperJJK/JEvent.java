@@ -22,7 +22,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
-import org.justheare.paperJJK.network.KeyStateManager;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -500,11 +499,7 @@ public class JEvent implements Listener {
     @EventHandler
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-
-        // 키 상태 초기화
-        KeyStateManager.clearPlayer(player);
-
-        PaperJJK.log("[JEvent] Player " + player.getName() + " quit - key states cleared");
+        PaperJJK.log("[JEvent] Player " + player.getName() + " quit");
     }
 
     public boolean useing_jujut(Player player, boolean leftclick,Entity entity){

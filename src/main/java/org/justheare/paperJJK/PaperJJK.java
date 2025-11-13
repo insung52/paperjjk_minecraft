@@ -16,7 +16,6 @@ import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.Vector;
 import org.justheare.paperJJK.network.JPacketHandler;
-import org.justheare.paperJJK.network.KeyStateManager;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -196,32 +195,24 @@ class manage implements Runnable{
                 }
             }
             else if(jobject instanceof Jplayer jplayer) {
-                // 키 상태 틱 처리 (매 틱마다)
-                KeyStateManager.tickPlayer(jplayer);
-
                 if (tick % 5 == 0) {
                     if (jplayer.reversecursing) {
-                        jplayer.reversecursing=false;
-                        if (jplayer.curseenergy > 0) {
-
-                            jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH,1, (int) Math.pow(jplayer.getremaincurrent(),0.1)));
-                            List<PotionEffect> potionEffects = (List<PotionEffect>) jplayer.player.getActivePotionEffects();
-                            for (PotionEffect potionEffect : potionEffects) {
-                                PotionEffectType pet = potionEffect.getType();
-                                if (pet.getCategory().equals(PotionEffectTypeCategory.HARMFUL)) {
-                                    jplayer.player.removePotionEffect(potionEffect.getType());
-                                    jplayer.player.addPotionEffect(potionEffect.withDuration(potionEffect.getDuration() - jplayer.getremaincurrent() / 100));
+                        if(jplayer.player.isSneaking()){
+                            if (jplayer.curseenergy > 0) {
+                                jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH,1, (int) Math.pow(jplayer.getremaincurrent(),0.1)));
+                                List<PotionEffect> potionEffects = (List<PotionEffect>) jplayer.player.getActivePotionEffects();
+                                for (PotionEffect potionEffect : potionEffects) {
+                                    PotionEffectType pet = potionEffect.getType();
+                                    if (pet.getCategory().equals(PotionEffectTypeCategory.HARMFUL)) {
+                                        jplayer.player.removePotionEffect(potionEffect.getType());
+                                        jplayer.player.addPotionEffect(potionEffect.withDuration(potionEffect.getDuration() - jplayer.getremaincurrent() / 100));
+                                    }
                                 }
-                                //if(pet.equals(PotionEffectType.POISON)||pet.equals(PotionEffectType.WITHER)||pet.equals(PotionEffectType.LEVITATION)||pet.equals(PotionEffectType.BLINDNESS)||pet.equals(PotionEffectType.DARKNESS)||pet.){
-
-                                //}
-
+                                jplayer.curseenergy -= jplayer.getremaincurrent();
                             }
-                            jplayer.curseenergy -= jplayer.getremaincurrent();
-
-                        } else {
-                            jplayer.reversecursing = false;
-                            //jplayer.cursecurrent+=jplayer.getremaincurrent();
+                        }
+                        else {
+                            jplayer.reversecursing=false;
                         }
                     }
                     if (jplayer.reversecursing_out) {
