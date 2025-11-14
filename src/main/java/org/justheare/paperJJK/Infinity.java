@@ -12,6 +12,7 @@ import java.util.List;
 public class Infinity extends Jujut{
     boolean murasaki=false;
     boolean unlimit_m=false;
+    int soundtick=0;
     @Override
     public void disabled() {
         location.getWorld().playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 3, 2);
@@ -33,12 +34,13 @@ public class Infinity extends Jujut{
     }
     @Override
     public void run() {
+        soundtick++;
         maintick();
         if(!fixed){
             s_location=user.getLocation().clone().add(0,1.5,0);
             t_location=user.getLocation().clone().add(0,1.5,0).add(user.getLocation().getDirection().clone().normalize().multiply(distance));
         }
-        if(charging){
+        if(charging && !recharging){
             if(user instanceof Player player){
                 location=player.getEyeLocation().add(player.getEyeLocation().getDirection().multiply(distance));
             }
@@ -83,10 +85,12 @@ public class Infinity extends Jujut{
                 //location.getWorld().spawnParticle(Particle.DUST, location, (int) Math.pow(use_power,0.8), Math.log(use_power)/5, Math.log(use_power)/10, Math.log(use_power)/10, 0, dust, true);
                 dust=new Particle.DustOptions(Color.BLUE, (float) ((Math.pow(use_power,0.5))/7));
                 location.getWorld().spawnParticle(Particle.DUST, location, 1, 0.02, 0.02, 0.02, 0.5, dust, true);
-                ao();
-                if(time%5==0){
+                if(soundtick%5==0){
+                    soundtick=0;
                     location.getWorld().playSound(location, Sound.ENTITY_ENDER_DRAGON_FLAP, (float) use_power /10,0.8F);
                 }
+                ao();
+
             }
         }
     }
@@ -176,7 +180,9 @@ public class Infinity extends Jujut{
                         }
                         Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 5F);
                         location.getWorld().spawnParticle(Particle.DUST, location, (int) use_power, Math.pow(use_power, 0.5), Math.pow(use_power, 0.5), Math.pow(use_power, 0.5), 0.5, dust, true);
-                        location.add(location.getDirection().clone().multiply(0.8));
+                        // Use distance as direction multiplier (1 for forward, -1 for backward)
+                        double directionMultiplier = Math.abs(distance) < 0.1 ? 1 : Math.signum(distance);
+                        location.add(location.getDirection().clone().multiply(0.8 * directionMultiplier));
                         //location.createExplosion(5);
                         double yaw = location.getYaw();
                         double pitch = location.getPitch();
@@ -296,6 +302,10 @@ public class Infinity extends Jujut{
     }
     public void ao(){
         if(target=='a'){
+            if(time%10==0){
+                use_power--;
+            }
+
             location.add(d_location(location,t_location).normalize().multiply(0.5));
             List<Entity> targets= (List<Entity>) location.getNearbyEntities(5+Math.pow(use_power,0.7),5+Math.pow(use_power,0.7),5+Math.pow(use_power,0.7));
             for(int r=0; r<targets.size(); r++){

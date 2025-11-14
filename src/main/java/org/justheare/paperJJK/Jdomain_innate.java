@@ -19,13 +19,13 @@ import java.util.Objects;
 import java.util.Set;
 
 public class Jdomain_innate extends Jdomain{
-    boolean isexpanded=false;
+    public boolean isexpanded=false;
     boolean isexpanding=false;
     Jdomain_expand expanded_domain;
     Jdomain_expand attack_target=null;
     Jobject attacker;
     ArrayList<LivingEntity> domain_targets;
-    boolean no_border_on=false;
+    public boolean no_border_on=false;
     Location nb_location;
     boolean onground=false;
     int nb_range;
@@ -40,7 +40,7 @@ public class Jdomain_innate extends Jdomain{
     void tp_effect(){
 
     }
-    boolean build_expand(int range){//영역 전개. 근처 결있영 체크
+    public boolean build_expand(int range){//영역 전개. 근처 결있영 체크
         if(level<3){
             owner.user.sendMessage("you can't expand domain!");
             return false;
@@ -94,7 +94,7 @@ public class Jdomain_innate extends Jdomain{
         start_effect();
         return true;
     }
-    boolean destroy_expand(){  //영역 해제,
+    public boolean destroy_expand(){  //영역 해제,
         if(isexpanded&&!isexpanding){
             Bukkit.getScheduler().cancelTask(effector.tasknum);
             if(attacker==null){
@@ -173,7 +173,7 @@ public class Jdomain_innate extends Jdomain{
         owner.player.setCooldown(Material.WRITTEN_BOOK,20*30);
         return true;
     }
-    boolean drow_expand(int range){//결없영 전개
+    public boolean drow_expand(int range){//결없영 전개
         if(level<10){
             owner.user.sendMessage("you can't open domain border!");
             return false;
@@ -217,7 +217,7 @@ public class Jdomain_innate extends Jdomain{
         start_effect();
         return true;
     }
-    boolean undrow_expand(){
+    public boolean undrow_expand(){
         if(no_border_on&&isexpanded){
             if(attack_target!=null){
                 attack_target.owner.innate_domain.attacker=null;

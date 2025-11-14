@@ -24,7 +24,7 @@ public class Infinity_passive extends Jujut{
         j_entities=new ArrayList<Entity>();
         j_entities_location=new ArrayList<Location>();
         fixable=true;
-        setcurrent(1,100);
+        setcurrent(1,5);
         user.getWorld().playSound(((Player)user).getEyeLocation(), Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE,1,1);
         //user.getWorld().setBiome(location,Biome.);
     }
@@ -40,6 +40,13 @@ public class Infinity_passive extends Jujut{
     int ticks=0;
     @Override
     public void run() {
+        if(recharging && use_power<max_power){
+            //PaperJJK.log("앙"+max_power);
+            use_power+=0.1;
+        }
+        else if(use_power>2){
+            use_power-=0.1;
+        }
         if(tick>0){
             tick--;
         }
@@ -47,6 +54,7 @@ public class Infinity_passive extends Jujut{
         user.setVisualFire(false);
         ticks++;
         location=((Player) user).getEyeLocation();
+
         List<Entity> targets = (List<Entity>) location.getNearbyEntities(use_power, use_power, use_power);
         for(Entity entity:targets){
 

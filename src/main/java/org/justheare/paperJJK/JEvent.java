@@ -344,6 +344,19 @@ public class JEvent implements Listener {
                     String nct_name = name[1];
                     PaperJJK.log("[JEvent] NCT book used - naturaltech: " + eventjobject.naturaltech + ", blocked: " + eventjobject.blocked);
                     eventjobject.setvalues(nct_name, Integer.parseInt(values[0]), Integer.parseInt(values[1]), Integer.parseInt(values[2]), Integer.parseInt(values[3]));
+
+                    // Initialize skill slots with default configuration for this technique
+                    if (eventjobject instanceof Jplayer jplayer) {
+                        jplayer.slot1Skill = "";
+                        jplayer.slot2Skill = "";
+                        jplayer.slot3Skill = "";
+                        jplayer.slot4Skill = "";
+                        jplayer.initializeSlots();
+                        JData.saveJobject(jplayer);
+                        player.sendMessage("§6스킬 슬롯이 " + nct_name + " 기본 설정으로 초기화되었습니다!");
+                        PaperJJK.log("[JEvent] Initialized skill slots for " + nct_name);
+                    }
+
                     event.setCancelled(true);
                 }
                 else if(name[0].equalsIgnoreCase("unct")&& !eventjobject.blocked&&(action.isLeftClick()||action.isRightClick())){
@@ -471,6 +484,10 @@ public class JEvent implements Listener {
                     if(newJplayer.domain != null){
                         newJplayer.domain.jobject = newJplayer;
                     }
+
+                    // Load slot configuration from playerdata
+                    JData.loadPlayerSlots(newJplayer);
+
                     jobjects.set(r, newJplayer);
                     PaperJJK.log("[JEvent] Converted to Jplayer - naturaltech: " + newJplayer.naturaltech + ", blocked: " + newJplayer.blocked);
                 } else {

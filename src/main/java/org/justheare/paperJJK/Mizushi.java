@@ -36,9 +36,19 @@ public class Mizushi extends Jujut{
             }
             use_power=5;
             fixable=false;
-            this.time=17;
+            this.time=18;
             setcurrent(4,100);
             j_entities=new ArrayList<Entity>();
+        }
+    }
+    public void get_target(){
+        List<Entity> targets = (List<Entity>) location.clone().add(location.getDirection().clone().multiply(3)).getNearbyEntities(3, 3, 3);
+        targets.remove(user);
+        if(targets.isEmpty()){
+            disables();
+        }
+        else {
+            j_entities = targets;
         }
     }
     @Override
@@ -54,6 +64,7 @@ public class Mizushi extends Jujut{
             }
         }
         if(user instanceof Player player){
+            PaperJJK.log("charged");
             location = player.getEyeLocation();
         }
         else {
@@ -124,7 +135,8 @@ public class Mizushi extends Jujut{
                         t_location = user.getLocation();
                     }
                     direction = t_location.getDirection().clone().add(location.getDirection().clone().multiply(-1));
-                    if(direction.length()<0.001){
+                    if(direction.length()<0.0001){
+                        PaperJJK.log("not long");
                         direction = new Vector(Math.random()-0.5,Math.random()-0.5, Math.random()-0.5);
                     }
                     t_location.setDirection(t_location.getDirection().add(new Vector(Math.random()-0.5,Math.random()-0.5, Math.random()-0.5).multiply(0.1)));

@@ -1,6 +1,7 @@
 package org.justheare.paperJJK.network;
 
 import com.google.common.io.ByteArrayDataInput;
+import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -54,6 +55,7 @@ public class JPacketHandler implements PluginMessageListener {
                 case PacketIds.SKILL_CONFIG -> handleSkillConfig(player, in);
                 case PacketIds.SKILL_DISTANCE -> handleSkillDistance(player, in);
                 case PacketIds.DOMAIN_EXPANSION -> handleDomainExpansion(player, in);
+                case PacketIds.DOMAIN_SETTINGS -> handleDomainSettings(player, in);
                 case PacketIds.HANDSHAKE -> handleHandshake(player, in);
                 default -> logger.warning(String.format("Unknown packet ID: 0x%02X (Player: %s)",
                         packetId, player.getName()));
@@ -154,6 +156,17 @@ public class JPacketHandler implements PluginMessageListener {
             return;
         }
 
+        // Validate skill matches player's natural technique
+        if (!JujutFactory.canUseSkill(jplayer.naturaltech, skillId)) {
+            player.sendMessage("§c이 스킬은 당신의 생득술식과 맞지 않습니다!");
+            player.sendMessage("§7현재 설정된 스킬: §e" + skillId);
+            player.sendMessage("§7당신의 생득술식: §e" + jplayer.naturaltech);
+            player.sendMessage("§6/jjk config 명령어로 스킬을 재설정하세요.");
+            logger.warning(String.format("[Technique] Skill mismatch: %s tried to use %s (naturaltech: %s)",
+                player.getName(), skillId, jplayer.naturaltech));
+            return;
+        }
+
         // DEBUG: Print all slot configurations
         logger.info(String.format("[DEBUG] Player %s slot config: 1=%s, 2=%s, 3=%s, 4=%s",
             player.getName(),
@@ -164,38 +177,41 @@ public class JPacketHandler implements PluginMessageListener {
 
         switch (action) {
             case PacketIds.SkillAction.START -> {
-                // Check if there's ANY existing skill for this slot (charging or active)
-                Jujut existingJujut = findAnyJujutForSlot(jplayer, slot);
+                // Check if there's a CHARGING skill for this slot
+                Jujut chargingJujut = findChargingJujutForSlot(jplayer, slot);
+                if (chargingJujut != null) {
+                    // Already charging this skill, ignore
+                    logger.info(String.format("[Technique] %s: Slot %d (%s) already charging, ignoring",
+                        player.getName(), slot, skillId));
+                    return;
+                }
 
-                if (existingJujut != null) {
-                    // Skill already exists for this slot
-                    if (existingJujut.charging) {
-                        // Already charging, ignore
-                        logger.info(String.format("[Technique] %s: Slot %d (%s) already charging, ignoring",
-                            player.getName(), slot, skillId));
-                        return;
-                    } else if (existingJujut.canRecharge()) {
-                        // Active and rechargeable, start recharge
-                        existingJujut.startRecharge();
+                // Check for rechargeable skills (only one instance allowed)
+                Jujut activeJujut = findActiveJujutForSlot(jplayer, slot);
+                if (activeJujut != null && activeJujut.rechargeable) {
+                    // Rechargeable skill exists - start recharge instead of creating new
+                    if (activeJujut.canRecharge()) {
+                        activeJujut.startRecharge();
                         logger.info(String.format("[Technique RECHARGE START] %s: Slot %d (%s) recharging",
                             player.getName(), slot, skillId));
                         return;
                     } else {
-                        // Active but not rechargeable, ignore (don't create new skill)
-                        logger.info(String.format("[Technique] %s: Slot %d (%s) already active and not rechargeable, ignoring",
+                        // Rechargeable but can't recharge right now (already charging)
+                        logger.info(String.format("[Technique] %s: Slot %d (%s) cannot recharge right now",
                             player.getName(), slot, skillId));
                         return;
                     }
                 }
 
-                // No existing skill, create new one
+                // For non-rechargeable skills (kai, aka, etc), always create new instance
+                // This allows rapid-fire attacks
                 Jujut jujut = JujutFactory.createJujut(skillId, jplayer, 100, 100);
                 if (jujut != null) {
                     jplayer.jujuts.add(jujut);
                     jujut.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(
                         PaperJJK.jjkplugin, jujut, 1, 1);
-                    logger.info(String.format("[Technique START] %s: Slot %d (%s) charging started",
-                        player.getName(), slot, skillId));
+                    logger.info(String.format("[Technique START] %s: Slot %d (%s) charging started (rapid-fire: %b)",
+                        player.getName(), slot, skillId, !jujut.rechargeable));
                 } else {
                     logger.warning(String.format("[Technique] Failed to create skill: %s (Player: %s)",
                         skillId, player.getName()));
@@ -280,6 +296,15 @@ public class JPacketHandler implements PluginMessageListener {
         String baseSkillId = jplayer.getSlotSkill(slot);
         if (baseSkillId == null) {
             logger.warning(String.format("[Reverse Technique] Invalid slot: %d (Player: %s)", slot, player.getName()));
+            return;
+        }
+
+        // Validate base skill matches player's natural technique
+        if (!JujutFactory.canUseSkill(jplayer.naturaltech, baseSkillId)) {
+            player.sendMessage("§c이 스킬은 당신의 생득술식과 맞지 않습니다!");
+            player.sendMessage("§6/jjk config 명령어로 스킬을 재설정하세요.");
+            logger.warning(String.format("[Reverse Technique] Skill mismatch: %s tried to reverse %s (naturaltech: %s)",
+                player.getName(), baseSkillId, jplayer.naturaltech));
             return;
         }
 
@@ -369,12 +394,13 @@ public class JPacketHandler implements PluginMessageListener {
     }
 
     /**
-     * SKILL_CONTROL (0x06) - Control active skill
-     * Packet format: [packetId(1)] [slot(1)] [controlData...] [timestamp(8)]
+     * SKILL_CONTROL (0x06) - Control active skill (T + slot key)
+     * Packet format: [packetId(1)] [action(1)] [slot(1)] [timestamp(8)]
+     * Toggles skill lock (시선 따라가기 on/off)
      */
     private void handleSkillControl(Player player, ByteArrayDataInput in) {
+        byte action = in.readByte();
         byte slot = in.readByte();
-        // TODO: Read control data (depends on implementation)
         long timestamp = in.readLong();
         Jplayer jplayer = getJplayer(player);
 
@@ -383,8 +409,35 @@ public class JPacketHandler implements PluginMessageListener {
             return;
         }
 
-        logger.info(String.format("[Skill CONTROL] %s: Controlling slot %d", player.getName(), slot));
-        // TODO: Control active skill
+        String skillId = jplayer.getSlotSkill(slot);
+        if (skillId == null) {
+            logger.warning(String.format("[Skill Control] Invalid slot: %d (Player: %s)", slot, player.getName()));
+            return;
+        }
+
+        // Find active skill for this slot
+        Jujut jujut = findActiveJujutForSlot(jplayer, slot);
+        if (jujut == null) {
+            player.sendMessage("§c해당 슬롯에 활성화된 스킬이 없습니다!");
+            logger.info(String.format("[Skill Control] No active skill found for slot %d (Player: %s)",
+                slot, player.getName()));
+            return;
+        }
+
+        // Check if skill is fixable
+        if (!jujut.fixable) {
+            player.sendMessage("§c이 스킬은 위치 고정을 지원하지 않습니다!");
+            logger.info(String.format("[Skill Control] Skill %s is not fixable (Player: %s)",
+                skillId, player.getName()));
+            return;
+        }
+
+        // Toggle fixed state
+        jujut.fixed = !jujut.fixed;
+        String state = jujut.fixed ? "§e고정됨 (시선 따라가기 OFF)" : "§a해제됨 (시선 따라가기 ON)";
+        player.sendMessage("§6[" + skillId + "] " + state);
+        logger.info(String.format("[Skill CONTROL] %s: %s fixed=%b",
+            player.getName(), skillId, jujut.fixed));
     }
 
     /**
@@ -422,16 +475,67 @@ public class JPacketHandler implements PluginMessageListener {
             return;
         }
 
-        String direction = scrollDelta > 0 ? "increased" : "decreased";
-        logger.info(String.format("[Skill DISTANCE] %s: Slot %d scroll %s (delta: %d)",
-            player.getName(), slot, direction, scrollDelta));
-        // TODO: Update skill spawn distance for the player's active skill based on scroll delta
-        // Each skill can have its own distance range and step size
+        String skillId = jplayer.getSlotSkill(slot);
+        if (skillId == null) {
+            logger.warning(String.format("[Skill Distance] Invalid slot: %d (Player: %s)", slot, player.getName()));
+            return;
+        }
+
+        // Find the charging skill for this slot
+        Jujut jujut = findChargingJujutForSlot(jplayer, slot);
+        if (jujut == null) {
+            // If not charging, try to find active skill
+            jujut = findActiveJujutForSlot(jplayer, slot);
+        }
+
+        if (jujut == null) {
+            logger.info(String.format("[Skill Distance] No active/charging skill found for slot %d (Player: %s)",
+                slot, player.getName()));
+            return;
+        }
+
+        // Adjust distance based on skill type
+        if (jujut instanceof Infinity) {
+            adjustInfinityDistance((Infinity) jujut, scrollDelta, skillId);
+            String direction = scrollDelta > 0 ? "increased" : "decreased";
+            logger.info(String.format("[Skill DISTANCE] %s: %s distance %s to %.1f",
+                player.getName(), skillId, direction, ((Infinity) jujut).distance));
+        }
+        else {
+            logger.info(String.format("[Skill Distance] Skill %s does not support distance adjustment",
+                skillId));
+        }
+    }
+
+    /**
+     * Adjust Infinity skill distance/direction based on scroll
+     */
+    private void adjustInfinityDistance(Infinity infinity, byte scrollDelta, String skillId) {
+        if (skillId.equals("infinity_ao")) {
+            // ao: adjust distance (1 to 20 blocks)
+            double step = 0.5;
+            infinity.distance += scrollDelta * step;
+
+            // Clamp distance
+            if (infinity.distance < 1) infinity.distance = 1;
+            if (infinity.distance > 20) infinity.distance = 20;
+        } else if (skillId.equals("infinity_aka")) {
+            // aka: toggle direction (1 for forward, -1 for backward)
+            // Use distance as direction multiplier
+            if (scrollDelta != 0) {
+                infinity.distance = infinity.distance > 0 ? -1 : 1;
+            }
+        }
     }
 
     /**
      * DOMAIN_EXPANSION (0x08) - Domain expansion start/end
      * Packet format: [packetId(1)] [action(1)] [flags(1)] [timestamp(8)]
+     *
+     * Client sends:
+     * - R press: START + NORMAL -> Normal domain expansion (ed build, range 30)
+     * - G + R press: START + NO_BARRIER -> No-barrier domain expansion (nb build, range 50)
+     * - Shift + R press: END + any flags -> Cancel domain (ed/nb destroy)
      */
     private void handleDomainExpansion(Player player, ByteArrayDataInput in) {
         byte action = in.readByte();
@@ -446,16 +550,147 @@ public class JPacketHandler implements PluginMessageListener {
 
         boolean noBarrier = (flags & PacketIds.DomainFlags.NO_BARRIER) != 0;
 
+        // New simplified logic:
+        // - R (START + NORMAL): Normal domain expansion (ed build)
+        // - G + R (START + NO_BARRIER): No-barrier domain expansion (nb build)
+        // - Shift + R (END + any flags): Cancel domain (ed/nb destroy)
+
         switch (action) {
             case PacketIds.SkillAction.START -> {
                 logger.info(String.format("[Domain START] %s: %s", player.getName(),
-                    noBarrier ? "No Barrier Domain" : "Normal Domain"));
-                // TODO: Start domain expansion
+                    noBarrier ? "No Barrier Domain (G + R)" : "Normal Domain (R)"));
+
+                if (jplayer.innate_domain == null) {
+                    player.sendMessage("§c생득영역이 없습니다!");
+                    return;
+                }
+
+                if (noBarrier) {
+                    // G + R: nb build - No Barrier Domain (무변부여)
+                    int range = jplayer.noBarrierDomainRange;  // Use player's configured range
+                    boolean success = jplayer.innate_domain.drow_expand(range);
+                    if (success) {
+                        logger.info(String.format("[Domain] No-barrier domain expanded (range: %d)", range));
+                    } else {
+                    }
+                } else {
+                    // R: ed build - Normal Domain with Barrier
+                    int range = jplayer.normalDomainRange;  // Use player's configured range
+                    boolean success = jplayer.innate_domain.build_expand(range);
+                    if (success) {
+                        logger.info(String.format("[Domain] Normal domain expanded (range: %d)", range));
+                    }
+                }
             }
             case PacketIds.SkillAction.END -> {
-                logger.info(String.format("[Domain END] %s: Domain cancelled", player.getName()));
-                // TODO: End domain expansion
+                // Shift + R: Cancel domain regardless of current state
+                logger.info(String.format("[Domain END] %s: Domain cancel requested (Shift + R)", player.getName()));
+
+                if (jplayer.innate_domain == null) {
+                    //player.sendMessage("§c생득영역이 없습니다!");
+                    return;
+                }
+
+                // Check if domain is expanded and destroy accordingly
+                if (jplayer.innate_domain.isexpanded) {
+                    if (jplayer.innate_domain.no_border_on) {
+                        // nb destroy - Undraw no-barrier domain
+                        boolean success = jplayer.innate_domain.undrow_expand();
+                        if (success) {
+                            player.sendMessage("§7결계가 없는 영역전개 해제");
+                            logger.info("[Domain] No-barrier domain destroyed");
+                        }
+                    } else {
+                        // ed destroy - Destroy normal domain
+                        boolean success = jplayer.innate_domain.destroy_expand();
+                        if (success) {
+                            player.sendMessage("§7영역전개 해제");
+                            logger.info("[Domain] Normal domain destroyed");
+                        }
+                    }
+                } else {
+                    player.sendMessage("§c영역이 전개되어 있지 않습니다!");
+                    logger.info(String.format("[Domain] %s tried to cancel domain but none is expanded", player.getName()));
+                }
             }
+        }
+    }
+
+    /**
+     * DOMAIN_SETTINGS (0x0A) - Domain settings request/update
+     * Packet format:
+     * - REQUEST: [packetId(1)] [action(1)] [timestamp(8)]
+     * - UPDATE: [packetId(1)] [action(1)] [normalRange(4)] [noBarrierRange(4)] [timestamp(8)]
+     */
+    private void handleDomainSettings(Player player, ByteArrayDataInput in) {
+        byte action = in.readByte();
+        Jplayer jplayer = getJplayer(player);
+
+        if (jplayer == null) {
+            logger.warning(String.format("[Domain Settings] Jplayer not found: %s", player.getName()));
+            return;
+        }
+
+        switch (action) {
+            case PacketIds.DomainSettingsAction.REQUEST -> {
+                // Client requests current settings
+                long timestamp = in.readLong();
+                logger.info(String.format("[Domain Settings] %s requested settings", player.getName()));
+                sendDomainSettingsResponse(player, jplayer);
+            }
+            case PacketIds.DomainSettingsAction.UPDATE -> {
+                // Client sends new settings
+                int normalRange = in.readInt();
+                int noBarrierRange = in.readInt();
+                long timestamp = in.readLong();
+
+                // Validate ranges
+                if (normalRange < 5 || normalRange > 50) {
+                    player.sendMessage("§c일반 영역전개 범위는 5~50 사이여야 합니다!");
+                    logger.warning(String.format("[Domain Settings] %s sent invalid normal range: %d",
+                        player.getName(), normalRange));
+                    return;
+                }
+                if (noBarrierRange < 5 || noBarrierRange > 200) {
+                    player.sendMessage("§c결계가 없는 영역전개 범위는 5~200 사이여야 합니다!");
+                    logger.warning(String.format("[Domain Settings] %s sent invalid no-barrier range: %d",
+                        player.getName(), noBarrierRange));
+                    return;
+                }
+
+                // Update settings
+                jplayer.normalDomainRange = normalRange;
+                jplayer.noBarrierDomainRange = noBarrierRange;
+                JData.saveJobject(jplayer);
+
+                player.sendMessage("§a영역전개 설정이 저장되었습니다!");
+                player.sendMessage("§7일반 영역전개 범위: §e" + normalRange + " §7/ 결계가 없는 영역전개 범위: §e" + noBarrierRange);
+                logger.info(String.format("[Domain Settings] %s updated settings: normal=%d, noBarrier=%d",
+                    player.getName(), normalRange, noBarrierRange));
+
+                // Send confirmation response
+                sendDomainSettingsResponse(player, jplayer);
+            }
+        }
+    }
+
+    /**
+     * Send domain settings response to client
+     */
+    private void sendDomainSettingsResponse(Player player, Jplayer jplayer) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.DOMAIN_SETTINGS_RESPONSE);
+            out.writeInt(jplayer.normalDomainRange);
+            out.writeInt(jplayer.noBarrierDomainRange);
+            out.writeLong(System.currentTimeMillis());
+
+            player.sendPluginMessage(plugin, "paperjjk:main", out.toByteArray());
+            logger.info(String.format("[Domain Settings] Sent response to %s: normal=%d, noBarrier=%d",
+                player.getName(), jplayer.normalDomainRange, jplayer.noBarrierDomainRange));
+        } catch (Exception e) {
+            logger.severe(String.format("[Domain Settings] Failed to send response to %s: %s",
+                player.getName(), e.getMessage()));
         }
     }
 

@@ -54,7 +54,28 @@ public class JData {
         }
     }
 
-    private static void saveJobject(Jobject jobject) {
+    /**
+     * Load player slot configuration from playerdata
+     */
+    public static void loadPlayerSlots(Jplayer jplayer) {
+        String uuid = jplayer.uuid.toString();
+        String path = "players." + uuid;
+
+        jplayer.slot1Skill = dataConfig.getString(path + ".slot1Skill", "");
+        jplayer.slot2Skill = dataConfig.getString(path + ".slot2Skill", "");
+        jplayer.slot3Skill = dataConfig.getString(path + ".slot3Skill", "");
+        jplayer.slot4Skill = dataConfig.getString(path + ".slot4Skill", "");
+
+        // Initialize slots based on naturaltech if empty
+        jplayer.initializeSlots();
+
+        PaperJJK.log("[JData] Loaded player slots - 1:" + jplayer.slot1Skill +
+                     ", 2:" + jplayer.slot2Skill +
+                     ", 3:" + jplayer.slot3Skill +
+                     ", 4:" + jplayer.slot4Skill);
+    }
+
+    public static void saveJobject(Jobject jobject) {
         String uuid = jobject.uuid.toString();
         String path = "players." + uuid;
 
@@ -93,6 +114,10 @@ public class JData {
             dataConfig.set(path + ".slot2Skill", jplayer.slot2Skill);
             dataConfig.set(path + ".slot3Skill", jplayer.slot3Skill);
             dataConfig.set(path + ".slot4Skill", jplayer.slot4Skill);
+
+            // Domain expansion configuration
+            dataConfig.set(path + ".normalDomainRange", jplayer.normalDomainRange);
+            dataConfig.set(path + ".noBarrierDomainRange", jplayer.noBarrierDomainRange);
         }
 
         // Mahoraga 적응 데이터
@@ -176,15 +201,24 @@ public class JData {
 
         // Skill slot configuration (for Jplayer only)
         if (existingJobject instanceof Jplayer jplayer) {
-            jplayer.slot1Skill = dataConfig.getString(path + ".slot1Skill", "infinity_ao");
-            jplayer.slot2Skill = dataConfig.getString(path + ".slot2Skill", "infinity_ao");
-            jplayer.slot3Skill = dataConfig.getString(path + ".slot3Skill", "infinity_aka");
-            jplayer.slot4Skill = dataConfig.getString(path + ".slot4Skill", "infinity_passive");
+            jplayer.slot1Skill = dataConfig.getString(path + ".slot1Skill", "");
+            jplayer.slot2Skill = dataConfig.getString(path + ".slot2Skill", "");
+            jplayer.slot3Skill = dataConfig.getString(path + ".slot3Skill", "");
+            jplayer.slot4Skill = dataConfig.getString(path + ".slot4Skill", "");
+
+            // Initialize slots based on naturaltech if empty
+            jplayer.initializeSlots();
+
+            // Domain expansion configuration
+            jplayer.normalDomainRange = dataConfig.getInt(path + ".normalDomainRange", 30);
+            jplayer.noBarrierDomainRange = dataConfig.getInt(path + ".noBarrierDomainRange", 50);
 
             PaperJJK.log("[JData] Loaded slot config - 1:" + jplayer.slot1Skill +
                          ", 2:" + jplayer.slot2Skill +
                          ", 3:" + jplayer.slot3Skill +
                          ", 4:" + jplayer.slot4Skill);
+            PaperJJK.log("[JData] Loaded domain config - normal:" + jplayer.normalDomainRange +
+                         ", noBarrier:" + jplayer.noBarrierDomainRange);
         }
 
         // Innate Domain 생성 및 로드

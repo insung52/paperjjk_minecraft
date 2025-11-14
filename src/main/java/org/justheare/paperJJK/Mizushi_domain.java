@@ -1,5 +1,7 @@
 package org.justheare.paperJJK;
 
+import com.google.common.io.ByteArrayDataOutput;
+import com.google.common.io.ByteStreams;
 import org.bukkit.*;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Entity;
@@ -8,12 +10,16 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
+import org.justheare.paperJJK.network.PacketIds;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 public class Mizushi_domain extends Jdomain_innate{
 
     ArrayList<LivingEntity> fuga_hit;
+    private UUID domainId;  // Unique domain ID for client rendering
+    private long lastSyncTime = 0;  // Last sync packet time
     void expand_effect(boolean nb){
         if(nb){
             owner.user.getWorld().playSound(owner.user.getLocation(),Sound.BLOCK_AMETHYST_BLOCK_RESONATE, 5F, 0.5F);
@@ -47,6 +53,91 @@ public class Mizushi_domain extends Jdomain_innate{
         this.effector=effector;
         effector.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin, effector, 1, 1);
     }
+
+    @Override
+    public boolean undrow_expand() {
+        // Send END packet before destroying domain
+        sendDomainEndPacket();
+        return super.undrow_expand();
+    }
+
+    /**
+     * Send START packet to clients for domain visualization
+     * Called when barrier-less domain expansion begins
+     */
+    void sendDomainStartPacket() {
+        if (owner.player == null || nb_location == null) return;
+
+        domainId = UUID.randomUUID();
+        lastSyncTime = System.currentTimeMillis();
+
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeByte(PacketIds.DOMAIN_VISUAL);
+        out.writeByte(PacketIds.DomainVisualAction.START);
+        out.writeInt(PacketIds.DomainType.NO_BARRIER);
+        out.writeDouble(nb_location.getX());
+        out.writeDouble(nb_location.getY());
+        out.writeDouble(nb_location.getZ());
+        out.writeInt(nb_range);
+        out.writeInt(0x3C3C3C);  // Dark gray color
+        out.writeFloat(80.0f);   // Expansion speed: 4 blocks/tick * 20 ticks/sec = 80 blocks/sec
+        out.writeLong(domainId.getMostSignificantBits());
+        out.writeLong(domainId.getLeastSignificantBits());
+
+        sendPacketToNearbyPlayers(out.toByteArray(), nb_range);
+        PaperJJK.log("[Mizushi Domain] Sent START packet: domainId=" + domainId + ", maxRadius=" + nb_range);
+    }
+
+    /**
+     * Send SYNC packet to clients (every 3 seconds)
+     * Corrects client-side drift
+     */
+    void sendDomainSyncPacket() {
+        if (owner.player == null || domainId == null) return;
+
+        long currentTime = System.currentTimeMillis();
+        if (currentTime - lastSyncTime < 3000) return;  // Only sync every 3 seconds
+
+        lastSyncTime = currentTime;
+
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeByte(PacketIds.DOMAIN_VISUAL);
+        out.writeByte(PacketIds.DomainVisualAction.SYNC);
+        out.writeLong(domainId.getMostSignificantBits());
+        out.writeLong(domainId.getLeastSignificantBits());
+        out.writeFloat((float) current_radius);
+
+        sendPacketToNearbyPlayers(out.toByteArray(), nb_range);
+        PaperJJK.log("[Mizushi Domain] Sent SYNC packet: domainId=" + domainId + ", currentRadius=" + current_radius);
+    }
+
+    /**
+     * Send END packet to clients when domain is destroyed
+     */
+    void sendDomainEndPacket() {
+        if (owner.player == null || domainId == null) return;
+
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeByte(PacketIds.DOMAIN_VISUAL);
+        out.writeByte(PacketIds.DomainVisualAction.END);
+        out.writeLong(domainId.getMostSignificantBits());
+        out.writeLong(domainId.getLeastSignificantBits());
+
+        sendPacketToNearbyPlayers(out.toByteArray(), nb_range + 50);  // Extended range for cleanup
+        PaperJJK.log("[Mizushi Domain] Sent END packet: domainId=" + domainId);
+    }
+
+    /**
+     * Send packet to all players within range
+     */
+    private void sendPacketToNearbyPlayers(byte[] data, double range) {
+        if (owner.player == null) return;
+
+        Location center = nb_location != null ? nb_location : owner.player.getLocation();
+        for (Player player : center.getNearbyPlayers(range)) {
+            player.sendPluginMessage(PaperJJK.jjkplugin, "paperjjk:main", data);
+        }
+    }
 }
 class Mizushi_effector extends Jdomain_effector{
     Mizushi_domain domain;
@@ -54,10 +145,17 @@ class Mizushi_effector extends Jdomain_effector{
     double tick1=0;
     double tick2=0;
     double rx,ry,rz;
+    boolean startPacketSent = false;
     Particle.DustOptions dark_dust2=new Particle.DustOptions(Color.fromRGB(60,0,0), 1F);
     public void effect_tick(){
 
         if(domain.no_border_on){
+            // Send START packet when expansion begins
+            if(!startPacketSent && domain.current_radius == 0) {
+                domain.sendDomainStartPacket();
+                startPacketSent = true;
+            }
+
             if(tick>20){
                 if(domain.special){
                     for(int r=0; r<20000; r++){
@@ -144,10 +242,14 @@ class Mizushi_effector extends Jdomain_effector{
                                     }
                                 }
                             }
+                            // Particle rendering replaced by client-side BufferBuilder sphere
+                            // Old particle code (lines 147-150):
+                            /*
                             if(tlocation.getBlock().isPassable()&&Math.random()>Math.pow(domain.current_radius*1.0/200.0,0.01)){
                                 Particle.DustOptions dust=new Particle.DustOptions(Color.WHITE, (float) (200 - domain.current_radius) /50);
                                 tlocation.getWorld().spawnParticle(Particle.DUST, tlocation, 1, 0, 0, 0, 1, dust, true);
                             }
+                            */
                             tick1+=0.7;
                             if (tick1 >= ((domain.onground)?(domain.current_radius * 4):(domain.current_radius*8))) {
                                 tick1 = 0;
@@ -156,6 +258,10 @@ class Mizushi_effector extends Jdomain_effector{
                                     domain.current_radius++;
                                     tick1=0;
                                     tick2=0;
+
+                                    // Send SYNC packet every 3 seconds
+                                    domain.sendDomainSyncPacket();
+
                                     if(domain.current_radius%4==0){
                                         break;
                                     }

@@ -20,15 +20,53 @@ public class Jplayer extends Jobject{
     private Score[] score_jj=new Score[3000];
 
     // Skill slot configuration (X, C, V, B keys)
-    public String slot1Skill = "infinity_ao";       // X key
-    public String slot2Skill = "infinity_ao";       // C key
-    public String slot3Skill = "infinity_aka";      // V key
-    public String slot4Skill = "infinity_passive";  // B key
+    public String slot1Skill = "";       // X key
+    public String slot2Skill = "";       // C key
+    public String slot3Skill = "";       // V key
+    public String slot4Skill = "";       // B key
+
+    // Domain expansion configuration
+    public int normalDomainRange = 30;      // 일반 영역전개 범위 (5~50)
+    public int noBarrierDomainRange = 50;   // 무변부여 영역전개 범위 (5~200)
 
     public Jplayer(Entity entity) {
         super(entity);
         player= (Player) user;
 
+        // Slots will be initialized after naturaltech is loaded from JData
+    }
+
+    /**
+     * Initialize slot skills based on natural technique
+     */
+    public void initializeSlots() {
+        // Skip if already configured
+        if (!slot1Skill.isEmpty()) return;
+
+        switch (naturaltech.toLowerCase()) {
+            case "infinity":
+                slot1Skill = "infinity_ao";
+                slot2Skill = "infinity_aka";
+                slot3Skill = "infinity_passive";
+                slot4Skill = "infinity_ao";
+                break;
+            case "mizushi":
+                slot1Skill = "mizushi_kai";
+                slot2Skill = "mizushi_hachi";
+                slot3Skill = "mizushi_fuga";
+                slot4Skill = "mizushi_kai";
+                break;
+            default:
+                // Default to infinity if unknown
+                slot1Skill = "infinity_ao";
+                slot2Skill = "infinity_aka";
+                slot3Skill = "infinity_passive";
+                slot4Skill = "infinity_ao";
+                break;
+        }
+
+        PaperJJK.log("[Jplayer] Initialized slots for " + naturaltech +
+                     ": " + slot1Skill + ", " + slot2Skill + ", " + slot3Skill + ", " + slot4Skill);
     }
 
     /**

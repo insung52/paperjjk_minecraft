@@ -27,9 +27,9 @@ public class Jujut implements Runnable{
     public Location location;
     Location s_location;
     Location t_location;
-    boolean fixed=false;
-    boolean fixable=false;
-    double distance=1;
+    public boolean fixed=false;
+    public boolean fixable=false;
+    public double distance=1;
     double speed=0;
     boolean reversecurse;
     public boolean charging=true;
@@ -99,7 +99,7 @@ public class Jujut implements Runnable{
     public void run() {
     }
     public void maintick(){
-        jobject.curseenergy-=power*efficiency;
+        jobject.curseenergy-= (int) (use_power*efficiency);
         if(charging){
             // Charging continues - power accumulates
             if(use_power<power){
@@ -121,10 +121,12 @@ public class Jujut implements Runnable{
      * Start recharging an already active skill
      * @return true if recharge started successfully
      */
+    boolean recharging=false;
     public boolean startRecharge() {
-        if (!rechargeable || !active || charging) {
+        if (!rechargeable || !active || charging || recharging) {
             return false;
         }
+        recharging = true;
         charging = true;
         return true;
     }
@@ -134,6 +136,7 @@ public class Jujut implements Runnable{
      */
     public void stopCharging() {
         if (charging) {
+            recharging = false;
             charging = false;
             if (!active) {
                 // First time activation

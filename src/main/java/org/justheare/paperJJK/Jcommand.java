@@ -237,9 +237,20 @@ public class Jcommand implements TabExecutor {
                     }
                 }
                 else if(args[0].equals("reset")){
-                    PaperJJK.getjobject(player).naturaltech="";
-                    PaperJJK.getjobject(player).max_curseenergy=200;
-                    PaperJJK.getjobject(player).curseenergy=0;
+                    Jobject jobject = PaperJJK.getjobject(player);
+                    jobject.naturaltech="";
+                    jobject.max_curseenergy=200;
+                    jobject.curseenergy=0;
+
+                    // Reset slot configuration if Jplayer
+                    if(jobject instanceof Jplayer jplayer){
+                        jplayer.slot1Skill = "";
+                        jplayer.slot2Skill = "";
+                        jplayer.slot3Skill = "";
+                        jplayer.slot4Skill = "";
+                        player.sendMessage("§6스킬 슬롯도 초기화되었습니다.");
+                    }
+
                     player.sendMessage("cursed technic reseted");
                 }
                 else if(args[0].equals("set")){
@@ -326,6 +337,9 @@ public class Jcommand implements TabExecutor {
                         player.sendMessage(line);
                     }
                 }
+                else if(args[0].equals("config")){
+                    handleConfigCommand(player, args);
+                }
                 else if(args[0].equals("rule")){
                     if(args[1].equals("breakblock")){
                         if(args[2].equals("true")){
@@ -356,11 +370,93 @@ public class Jcommand implements TabExecutor {
         }
         return false;
     }
+
+    /**
+     * Handle /jjk config <slot> <skill> command
+     * Example: /jjk config x ao -> Set slot 1 (X key) to infinity_ao
+     */
+    private void handleConfigCommand(Player player, String[] args) {
+        // Get Jplayer
+        Jobject jobject = PaperJJK.getjobject(player);
+        if (!(jobject instanceof Jplayer jplayer)) {
+            player.sendMessage("§cPlayer data not found!");
+            return;
+        }
+
+        // Show current config if no args
+        if (args.length < 3) {
+            player.sendMessage("§6========== 스킬 설정 ==========");
+            player.sendMessage("§7생득술식: §e" + jplayer.naturaltech);
+            player.sendMessage("§7X키 (슬롯1): §b" + JujutFactory.getSkillDisplayName(jplayer.slot1Skill));
+            player.sendMessage("§7C키 (슬롯2): §b" + JujutFactory.getSkillDisplayName(jplayer.slot2Skill));
+            player.sendMessage("§7V키 (슬롯3): §b" + JujutFactory.getSkillDisplayName(jplayer.slot3Skill));
+            player.sendMessage("§7B키 (슬롯4): §b" + JujutFactory.getSkillDisplayName(jplayer.slot4Skill));
+            player.sendMessage("§6사용법: §f/jjk config <x|c|v|b> <skillName>");
+            player.sendMessage("§6예시: §f/jjk config x ao");
+            return;
+        }
+
+        // Parse slot (x, c, v, b)
+        String slotArg = args[1].toLowerCase();
+        byte slot = switch (slotArg) {
+            case "x" -> 1;
+            case "c" -> 2;
+            case "v" -> 3;
+            case "b" -> 4;
+            default -> 0;
+        };
+
+        if (slot == 0) {
+            player.sendMessage("§c잘못된 슬롯입니다! x, c, v, b 중 하나를 입력하세요.");
+            return;
+        }
+
+        // Parse skill name
+        String shortSkillName = args[2].toLowerCase();
+        String fullSkillId = JujutFactory.parseSkillName(shortSkillName, jplayer.naturaltech);
+
+        if (fullSkillId == null) {
+            player.sendMessage("§c잘못된 스킬 이름입니다!");
+            player.sendMessage("§7사용 가능한 스킬:");
+            for (String skillId : JujutFactory.getAvailableSkills(jplayer.naturaltech)) {
+                String shortName = skillId.substring(jplayer.naturaltech.length() + 1);
+                player.sendMessage("§7  - §b" + shortName + " §7(" + JujutFactory.getSkillDisplayName(skillId) + ")");
+            }
+            return;
+        }
+
+        // Validate player can use this skill
+        if (!JujutFactory.canUseSkill(jplayer.naturaltech, fullSkillId)) {
+            player.sendMessage("§c당신의 생득술식 (" + jplayer.naturaltech + ")으로는 이 스킬을 사용할 수 없습니다!");
+            return;
+        }
+
+        // Set the skill
+        if (!jplayer.setSlotSkill(slot, fullSkillId)) {
+            player.sendMessage("§c스킬 설정에 실패했습니다!");
+            return;
+        }
+
+        // Save to file
+        JData.saveJobject(jplayer);
+
+        // Success message
+        String slotName = switch (slot) {
+            case 1 -> "X";
+            case 2 -> "C";
+            case 3 -> "V";
+            case 4 -> "B";
+            default -> "?";
+        };
+
+        player.sendMessage("§a스킬 설정 완료!");
+        player.sendMessage("§7" + slotName + "키 → §b" + JujutFactory.getSkillDisplayName(fullSkillId));
+    }
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if(command.getName().equalsIgnoreCase("jjk")){
             if(args.length==1){
-                return Arrays.asList("refill","basic","reset","set","cw","ce","mahoraga","id","ed","nb","save","domaininfo","domainverify","rule");
+                return Arrays.asList("refill","basic","reset","set","cw","ce","mahoraga","id","ed","nb","save","domaininfo","domainverify","rule","config");
             }
             else if(args.length==2){
                 if(args[0].equals("basic")){
@@ -375,8 +471,26 @@ public class Jcommand implements TabExecutor {
                 else if(args[0].equals("rule")){
                     return Arrays.asList("breakblock","hud");
                 }
+                else if(args[0].equals("config")){
+                    return Arrays.asList("x","c","v","b");
+                }
             }
             else if(args.length==3){
+                if(args[0].equals("config")){
+                    // Get player's natural tech and return available skills
+                    if(sender instanceof Player player){
+                        Jobject jobject = PaperJJK.getjobject(player);
+                        if(jobject instanceof Jplayer jplayer){
+                            java.util.List<String> shortNames = new java.util.ArrayList<>();
+                            for(String skillId : JujutFactory.getAvailableSkills(jplayer.naturaltech)){
+                                String shortName = skillId.substring(jplayer.naturaltech.length() + 1);
+                                shortNames.add(shortName);
+                            }
+                            return shortNames;
+                        }
+                    }
+                    return Arrays.asList("ao","aka","passive","kai","hachi","fuga");
+                }
                 if(args[0].equals("rule")){
                     if(args[1].equals("breakblock")){
                         return Arrays.asList("true","false");
