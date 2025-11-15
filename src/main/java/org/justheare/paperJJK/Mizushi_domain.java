@@ -80,7 +80,7 @@ public class Mizushi_domain extends Jdomain_innate{
         out.writeDouble(nb_location.getZ());
         out.writeInt(nb_range);
         out.writeInt(0x3C3C3C);  // Dark gray color
-        out.writeFloat(80.0f);   // Expansion speed: 4 blocks/tick * 20 ticks/sec = 80 blocks/sec
+        out.writeFloat(30.0f);   // Expansion speed: 4 blocks/tick * 20 ticks/sec = 80 blocks/sec
         out.writeLong(domainId.getMostSignificantBits());
         out.writeLong(domainId.getLeastSignificantBits());
 
@@ -96,7 +96,7 @@ public class Mizushi_domain extends Jdomain_innate{
         if (owner.player == null || domainId == null) return;
 
         long currentTime = System.currentTimeMillis();
-        if (currentTime - lastSyncTime < 3000) return;  // Only sync every 3 seconds
+        if (currentTime - lastSyncTime < 200) return;  // Only sync every 3 seconds
 
         lastSyncTime = currentTime;
 
@@ -134,7 +134,7 @@ public class Mizushi_domain extends Jdomain_innate{
         if (owner.player == null) return;
 
         Location center = nb_location != null ? nb_location : owner.player.getLocation();
-        for (Player player : center.getNearbyPlayers(range)) {
+        for (Player player : center.getNearbyPlayers(1000)) {
             player.sendPluginMessage(PaperJJK.jjkplugin, "paperjjk:main", data);
         }
     }
@@ -151,7 +151,7 @@ class Mizushi_effector extends Jdomain_effector{
 
         if(domain.no_border_on){
             // Send START packet when expansion begins
-            if(!startPacketSent && domain.current_radius == 0) {
+            if(!startPacketSent && domain.current_radius >= 1) {
                 domain.sendDomainStartPacket();
                 startPacketSent = true;
             }
@@ -260,7 +260,7 @@ class Mizushi_effector extends Jdomain_effector{
                                     tick2=0;
 
                                     // Send SYNC packet every 3 seconds
-                                    domain.sendDomainSyncPacket();
+
 
                                     if(domain.current_radius%4==0){
                                         break;
@@ -271,6 +271,7 @@ class Mizushi_effector extends Jdomain_effector{
                                 }
                             }
                         }
+                        domain.sendDomainSyncPacket();
                     }
                     for(int r=0; r<30+Math.pow(domain.current_radius,2.3)/50; r++){
                         Vector r_vector = new Vector(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
