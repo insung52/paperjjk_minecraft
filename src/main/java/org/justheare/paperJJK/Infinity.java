@@ -325,7 +325,7 @@ public class Infinity extends Jujut{
             }
 
             // Send SYNC packet every 10 ticks (0.5 seconds)
-            if(time%5==0){
+            if(soundtick%5==0){
                 use_power--;
 
                 // Send position/strength update to client
