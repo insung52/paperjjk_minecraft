@@ -28,12 +28,17 @@ public class Infinity extends Jujut{
         this.time = 999999;
         if(rct) {
             speed=1;
-            this.time = (int) Math.pow(time,0.5);
+            this.time = (int) Math.pow(this.time,0.3);
         }
         setcurrent(1,100);
     }
     @Override
     public void run() {
+        if(soundtick%5==0){
+            if(charging || recharging){
+                location.getWorld().playSound(location, Sound.BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM, (float) use_power /60, (float) ((float) use_power /100*1.5 + 0.5));
+            }
+        }
         soundtick++;
         maintick();
         if(!fixed){

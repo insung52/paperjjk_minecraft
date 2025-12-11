@@ -40,6 +40,12 @@ public class Infinity_passive extends Jujut{
     int ticks=0;
     @Override
     public void run() {
+        if(ticks%5==0){
+            if(charging || recharging ){
+                user.getWorld().playSound(location, Sound.BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM, (float) use_power*5 /60, (float) ((float) use_power*20 /100*1.5 + 0.5));
+            }
+        }
+
         if(recharging && use_power<max_power){
             //PaperJJK.log("앙"+max_power);
             use_power+=0.1;

@@ -5,6 +5,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
@@ -17,6 +18,7 @@ import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.Vector;
 import org.justheare.paperJJK.network.JPacketHandler;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -120,6 +122,75 @@ public final class PaperJJK extends JavaPlugin {
             list.addAll(jobjects.get(r).jujuts);
         }
         return list;
+    }
+
+    /**
+     * 몹의 AI Goal을 제거하되 물리 엔진은 유지
+     */
+    public static void disableMobAI(LivingEntity entity) {
+        if (!(entity instanceof Mob mob)) {
+            return;
+        }
+
+        try {
+            // Reflection을 통해 NMS Mob 객체 접근
+            Method getHandleMethod = mob.getClass().getMethod("getHandle");
+            Object nmsMob = getHandleMethod.invoke(mob);
+
+            // goalSelector와 targetSelector 가져오기
+            Object goalSelector = nmsMob.getClass().getField("goalSelector").get(nmsMob);
+            Object targetSelector = nmsMob.getClass().getField("targetSelector").get(nmsMob);
+
+            // removeAllGoals 메소드 호출
+            Method removeAllGoalsMethod = goalSelector.getClass().getMethod("removeAllGoals", java.util.function.Predicate.class);
+            removeAllGoalsMethod.invoke(goalSelector, (java.util.function.Predicate<Object>) goal -> true);
+            removeAllGoalsMethod.invoke(targetSelector, (java.util.function.Predicate<Object>) goal -> true);
+
+            // 침묵 효과 (소리 방지)
+            entity.setSilent(true);
+
+        } catch (Exception e) {
+            // Reflection 실패 시 대체 방법
+            log("Failed to disable AI via reflection: " + e.getMessage());
+            entity.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20, 255, false, false));
+            entity.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 20, 255, false, false));
+            entity.setSilent(true);
+        }
+    }
+
+    /**
+     * 몹의 AI를 복구
+     */
+    public static void restoreMobAI(LivingEntity entity) {
+        if (!(entity instanceof Mob mob)) {
+            return;
+        }
+
+        try {
+            // Reflection으로 NMS Mob 객체 접근
+            Method getHandleMethod = mob.getClass().getMethod("getHandle");
+            Object nmsMob = getHandleMethod.invoke(mob);
+
+            // registerGoals 메소드 호출 시도 (기본 AI 재등록)
+            try {
+                Method registerGoalsMethod = nmsMob.getClass().getDeclaredMethod("registerGoals");
+                registerGoalsMethod.setAccessible(true);
+                registerGoalsMethod.invoke(nmsMob);
+            } catch (NoSuchMethodException e) {
+                // registerGoals가 없으면 setAI 사용
+                log("no registerGoals");
+                mob.setAI(true);
+            }
+
+            // 침묵 해제
+            mob.setSilent(false);
+
+        } catch (Exception e) {
+            // 실패 시 기본 setAI 사용
+            log("Failed to restore AI via reflection: " + e.getMessage());
+            mob.setAI(true);
+            mob.setSilent(false);
+        }
     }
     public static double get_calculated_power(Entity entity,String target,double power){
         if(entity instanceof Player player){

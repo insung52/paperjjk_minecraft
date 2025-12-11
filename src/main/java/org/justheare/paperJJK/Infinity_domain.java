@@ -9,7 +9,6 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.util.Vector;
 
 import java.util.ArrayList;
 
@@ -43,6 +42,7 @@ public class Infinity_domain extends Jdomain_innate{
 }
 class Infinity_effector extends Jdomain_effector{
     Infinity_domain domain;
+
     Infinity_effector(Infinity_domain domain) {
         super(domain);
         this.domain=domain;
@@ -84,12 +84,13 @@ class Infinity_effector extends Jdomain_effector{
                                 player.setCooldown(Material.WRITTEN_BOOK,jobject.infinity_stun_tick);
                             }
                             else {
-                                living.setAI(false);
+                                // AI Goal만 제거, 물리는 유지
+                                PaperJJK.disableMobAI(living);
                             }
                         }
                         else {
-                            living.setAI(false);
-                            living.setSilent(true);
+                            // AI Goal만 제거, 물리는 유지
+                            PaperJJK.disableMobAI(living);
                         }
                     }
                     tee.add(living);

@@ -182,7 +182,7 @@ public class Mahoraga extends Jujut{
         PaperJJK.log(target);
         jobject.infinity_stun_tick=0;
         if(user instanceof LivingEntity living){
-            living.setAI(true);
+            PaperJJK.restoreMobAI(living);
             if(target.equals("FIRE")||target.equals("FIRE_TICK")||target.equals("LAVA")||target.equals("HOT_FLOOR")){
                 if(power>5){
                     living.addPotionEffect(new PotionEffect(PotionEffectType.FIRE_RESISTANCE,999999,1,false));

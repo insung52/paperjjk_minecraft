@@ -446,6 +446,7 @@ class Jdomain_effector implements Runnable{
         tick=0;
     }
     int tick=0;
+
     public void effect_tick(){
         if(domain.no_border_on){
             if(domain.current_radius< domain.nb_range){
