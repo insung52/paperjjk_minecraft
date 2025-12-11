@@ -221,7 +221,7 @@ public class Infinity extends Jujut{
                     double z = r*0.8 * Math.cos(theta);
                     Location tlocation = location.clone().add(new Vector(x, y, z));
                     breakblock(tlocation, (int) (use_power-tick/20));
-                    if(Math.random()<0.01){
+                    if(Math.random()<0.0001){
                         Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 3F);
                         location.getWorld().spawnParticle(Particle.DUST, tlocation, 1, 1, 1, 1, 0.5, dust, true);
                     }
@@ -235,16 +235,18 @@ public class Infinity extends Jujut{
                 if(unlimit_m){
                     // Send START_EXPLODE packet when unlimit_m starts (only once)
                     if(time>1&&!murasakiEffectActive && user instanceof Player player) {
-                        float initialRadius = (float) (10 + use_power / 10) * 0.8f * 3f;  // tick=0, r*0.8
+                        float initialRadius = 0.1f;  // Small initial radius
                         JPacketSender.sendInfinityMurasakiStartExplode(player, location, initialRadius);
                         murasakiEffectActive = true;
                     }
 
                     // Send SYNC_RADIUS every tick to update expanding radius
                     if(user instanceof Player player) {
+                        // Calculate current tick of explosion (starts at 0, increases)
                         int tick = (int) ((10 + use_power / 10 - time - 1) * 3);
-                        float currentRadius = tick * 1000.1f;  // r*0.8 from murasaki_explode
-                        //PaperJJK.log("hihi" + currentRadius);
+                        // Radius in blocks: r * 0.8 from murasaki_explode
+                        // Each tick, r goes from 0 to (maxTime * 3)
+                        float currentRadius = tick * 2.8f;  // Actual radius in blocks
                         JPacketSender.sendInfinityMurasakiSyncRadius(player, currentRadius);
                     }
 
