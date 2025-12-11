@@ -84,7 +84,7 @@ public class Infinity extends Jujut{
             if(soundtick%5==0){
                 // Send position/strength update to client
                 if(user instanceof Player player) {
-                    float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
+                    float strength = (float) (use_power / 3.0 * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
                     JPacketSender.sendInfinityAkaSync(player, location, strength);
                 }
             }
