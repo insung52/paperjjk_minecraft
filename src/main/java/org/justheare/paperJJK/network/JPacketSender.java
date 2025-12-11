@@ -346,4 +346,126 @@ public class JPacketSender {
             e.printStackTrace();
         }
     }
+
+    /**
+     * INFINITY_MURASAKI (0x19) - START action (normal moving murasaki)
+     * Start Infinity Murasaki purple expansion effect
+     */
+    public static void sendInfinityMurasakiStart(Player player, Location position, float strength) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_MURASAKI);
+            out.writeByte(PacketIds.InfinityMurasakiAction.START);
+            out.writeDouble(position.getX());
+            out.writeDouble(position.getY());
+            out.writeDouble(position.getZ());
+            out.writeFloat(strength);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.info(String.format("[Packet Send] INFINITY_MURASAKI START → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_MURASAKI START packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * INFINITY_MURASAKI (0x19) - SYNC action (normal moving murasaki)
+     * Update Murasaki position and strength
+     */
+    public static void sendInfinityMurasakiSync(Player player, Location position, float strength) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_MURASAKI);
+            out.writeByte(PacketIds.InfinityMurasakiAction.SYNC);
+            out.writeDouble(position.getX());
+            out.writeDouble(position.getY());
+            out.writeDouble(position.getZ());
+            out.writeFloat(strength);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.fine(String.format("[Packet Send] INFINITY_MURASAKI SYNC → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_MURASAKI SYNC packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * INFINITY_MURASAKI (0x19) - START_EXPLODE action (unlimit_m explosion)
+     * Start Murasaki explosion at fixed position
+     */
+    public static void sendInfinityMurasakiStartExplode(Player player, Location position, float initialRadius) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_MURASAKI);
+            out.writeByte(PacketIds.InfinityMurasakiAction.START_EXPLODE);
+            out.writeDouble(position.getX());
+            out.writeDouble(position.getY());
+            out.writeDouble(position.getZ());
+            out.writeFloat(initialRadius);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.info(String.format("[Packet Send] INFINITY_MURASAKI START_EXPLODE → %s: pos=(%.2f,%.2f,%.2f), radius=%.2f",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), initialRadius));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_MURASAKI START_EXPLODE packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * INFINITY_MURASAKI (0x19) - SYNC_RADIUS action (unlimit_m explosion)
+     * Update expanding radius for explosion
+     */
+    public static void sendInfinityMurasakiSyncRadius(Player player, float radius) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_MURASAKI);
+            out.writeByte(PacketIds.InfinityMurasakiAction.SYNC_RADIUS);
+            out.writeFloat(radius);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.fine(String.format("[Packet Send] INFINITY_MURASAKI SYNC_RADIUS → %s: radius=%.2f",
+                    player.getName(), radius));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_MURASAKI SYNC_RADIUS packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * INFINITY_MURASAKI (0x19) - END action
+     * Stop Murasaki effect (both types)
+     */
+    public static void sendInfinityMurasakiEnd(Player player) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_MURASAKI);
+            out.writeByte(PacketIds.InfinityMurasakiAction.END);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.info(String.format("[Packet Send] INFINITY_MURASAKI END → %s", player.getName()));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_MURASAKI END packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
 }

@@ -16,6 +16,7 @@ public class Infinity extends Jujut{
     int soundtick=0;
     boolean aoEffectActive=false;   // Track if AO packet effect is active
     boolean akaEffectActive=false;  // Track if AKA packet effect is active
+    boolean murasakiEffectActive=false;  // Track if MURASAKI packet effect is active
     @Override
     public void disabled() {
         location.getWorld().playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 3, 2);
@@ -30,6 +31,12 @@ public class Infinity extends Jujut{
         if(akaEffectActive && user instanceof Player player) {
             JPacketSender.sendInfinityAkaEnd(player);
             akaEffectActive = false;
+        }
+
+        // Send END packet when MURASAKI effect stops
+        if(murasakiEffectActive && user instanceof Player player) {
+            JPacketSender.sendInfinityMurasakiEnd(player);
+            murasakiEffectActive = false;
         }
     }
     public Infinity(Jobject jobject, String spe_name, String type, boolean rct, int power, int time, char target) {
@@ -226,9 +233,37 @@ public class Infinity extends Jujut{
         if(target=='a'){
             if(murasaki){
                 if(unlimit_m){
+                    // Send START_EXPLODE packet when unlimit_m starts (only once)
+                    if(time>1&&!murasakiEffectActive && user instanceof Player player) {
+                        float initialRadius = (float) (10 + use_power / 10) * 0.8f * 3f;  // tick=0, r*0.8
+                        JPacketSender.sendInfinityMurasakiStartExplode(player, location, initialRadius);
+                        murasakiEffectActive = true;
+                    }
+
+                    // Send SYNC_RADIUS every tick to update expanding radius
+                    if(user instanceof Player player) {
+                        int tick = (int) ((10 + use_power / 10 - time - 1) * 3);
+                        float currentRadius = tick * 1000.1f;  // r*0.8 from murasaki_explode
+                        //PaperJJK.log("hihi" + currentRadius);
+                        JPacketSender.sendInfinityMurasakiSyncRadius(player, currentRadius);
+                    }
+
                     murasaki_explode();
                 }
                 else{
+                    // Normal murasaki - send START packet (only once)
+                    if(time>1&&!murasakiEffectActive && user instanceof Player player) {
+                        float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
+                        JPacketSender.sendInfinityMurasakiStart(player, location, strength);
+                        murasakiEffectActive = true;
+                    }
+
+                    // Normal murasaki - send SYNC packet every 10 ticks (0.5 seconds)
+                    if(soundtick%4==0 && user instanceof Player player) {
+                        float strength = (float) (use_power / 2.0 * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
+                        JPacketSender.sendInfinityMurasakiSync(player, location, strength);
+                    }
+
                     if(time%2==0){
                         location.getWorld().playSound(location, Sound.ENTITY_GENERIC_EXPLODE, SoundCategory.BLOCKS, (float) (5+use_power*0.1), 0.5F);
                     }
