@@ -271,4 +271,79 @@ public class JPacketSender {
             e.printStackTrace();
         }
     }
+
+    /**
+     * INFINITY_AKA (0x18) - START action
+     * Start Infinity Aka expansion effect at position with strength
+     * Strength will be inverted on client side for expansion effect
+     */
+    public static void sendInfinityAkaStart(Player player, Location position, float strength) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_AKA);
+            out.writeByte(PacketIds.InfinityAkaAction.START);
+            out.writeDouble(position.getX());
+            out.writeDouble(position.getY());
+            out.writeDouble(position.getZ());
+            out.writeFloat(strength);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.info(String.format("[Packet Send] INFINITY_AKA START → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_AKA START packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * INFINITY_AKA (0x18) - SYNC action
+     * Update Infinity Aka position and strength (for moving projectiles)
+     * Strength will be inverted on client side for expansion effect
+     */
+    public static void sendInfinityAkaSync(Player player, Location position, float strength) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_AKA);
+            out.writeByte(PacketIds.InfinityAkaAction.SYNC);
+            out.writeDouble(position.getX());
+            out.writeDouble(position.getY());
+            out.writeDouble(position.getZ());
+            out.writeFloat(strength);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.fine(String.format("[Packet Send] INFINITY_AKA SYNC → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_AKA SYNC packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * INFINITY_AKA (0x18) - END action
+     * Stop Infinity Aka expansion effect
+     */
+    public static void sendInfinityAkaEnd(Player player) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_AKA);
+            out.writeByte(PacketIds.InfinityAkaAction.END);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.info(String.format("[Packet Send] INFINITY_AKA END → %s", player.getName()));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_AKA END packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
 }

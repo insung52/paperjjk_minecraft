@@ -14,7 +14,8 @@ public class Infinity extends Jujut{
     boolean murasaki=false;
     boolean unlimit_m=false;
     int soundtick=0;
-    boolean aoEffectActive=false;  // Track if AO packet effect is active
+    boolean aoEffectActive=false;   // Track if AO packet effect is active
+    boolean akaEffectActive=false;  // Track if AKA packet effect is active
     @Override
     public void disabled() {
         location.getWorld().playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 3, 2);
@@ -23,6 +24,12 @@ public class Infinity extends Jujut{
         if(aoEffectActive && user instanceof Player player) {
             JPacketSender.sendInfinityAoEnd(player);
             aoEffectActive = false;
+        }
+
+        // Send END packet when AKA effect stops
+        if(akaEffectActive && user instanceof Player player) {
+            JPacketSender.sendInfinityAkaEnd(player);
+            akaEffectActive = false;
         }
     }
     public Infinity(Jobject jobject, String spe_name, String type, boolean rct, int power, int time, char target) {
@@ -51,14 +58,13 @@ public class Infinity extends Jujut{
             // Send START packet when AO begins (only once)
             if(!aoEffectActive && user instanceof Player player) {
                 // Scale usepower (1-100) to strength (0.1-5.0)
-                float strength = (float) (1 * 0.049 + 0.051);  // Linear scale: 1->0.1, 100->5.0
+                float strength = (float) (0.1 * 0.049 + 0.051);  // Linear scale: 1->0.1, 100->5.0
                 JPacketSender.sendInfinityAoStart(player, location, strength);
                 aoEffectActive = true;
             }
             // Send SYNC packet every 10 ticks (0.5 seconds)
             if(soundtick%5==0){
                 use_power--;
-
                 // Send position/strength update to client
                 if(user instanceof Player player) {
                     float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
@@ -67,7 +73,21 @@ public class Infinity extends Jujut{
             }
         }
         else {
-            // aka
+            // Send START packet when AKA begins (only once)
+            if(!akaEffectActive && user instanceof Player player) {
+                // Scale usepower (1-100) to strength (0.1-5.0)
+                float strength = (float) (0.1 * 0.049 + 0.051);  // Linear scale: 1->0.1, 100->5.0
+                JPacketSender.sendInfinityAkaStart(player, location, strength);
+                akaEffectActive = true;
+            }
+            // Send SYNC packet every 10 ticks (0.5 seconds)
+            if(soundtick%5==0){
+                // Send position/strength update to client
+                if(user instanceof Player player) {
+                    float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
+                    JPacketSender.sendInfinityAkaSync(player, location, strength);
+                }
+            }
         }
 
 
