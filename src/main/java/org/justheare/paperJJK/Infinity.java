@@ -5,6 +5,7 @@ import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.*;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.justheare.paperJJK.network.JPacketSender;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -13,9 +14,16 @@ public class Infinity extends Jujut{
     boolean murasaki=false;
     boolean unlimit_m=false;
     int soundtick=0;
+    boolean aoEffectActive=false;  // Track if AO packet effect is active
     @Override
     public void disabled() {
         location.getWorld().playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 3, 2);
+
+        // Send END packet when AO effect stops
+        if(aoEffectActive && user instanceof Player player) {
+            JPacketSender.sendInfinityAoEnd(player);
+            aoEffectActive = false;
+        }
     }
     public Infinity(Jobject jobject, String spe_name, String type, boolean rct, int power, int time, char target) {
         super(jobject, spe_name, type, rct, power, time, target);
@@ -39,6 +47,7 @@ public class Infinity extends Jujut{
                 location.getWorld().playSound(location, Sound.BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM, (float) use_power /60, (float) ((float) use_power /100*1.5 + 0.5));
             }
         }
+
         soundtick++;
         maintick();
         if(!fixed){
@@ -307,8 +316,23 @@ public class Infinity extends Jujut{
     }
     public void ao(){
         if(target=='a'){
-            if(time%10==0){
+            // Send START packet when AO begins (only once)
+            if(!aoEffectActive && user instanceof Player player) {
+                // Scale usepower (1-100) to strength (0.1-5.0)
+                float strength = (float) (1 * 0.049 + 0.051);  // Linear scale: 1->0.1, 100->5.0
+                JPacketSender.sendInfinityAoStart(player, location, strength);
+                aoEffectActive = true;
+            }
+
+            // Send SYNC packet every 10 ticks (0.5 seconds)
+            if(time%5==0){
                 use_power--;
+
+                // Send position/strength update to client
+                if(user instanceof Player player) {
+                    float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
+                    JPacketSender.sendInfinityAoSync(player, location, strength);
+                }
             }
 
             location.add(d_location(location,t_location).normalize().multiply(0.5));
@@ -389,6 +413,12 @@ public class Infinity extends Jujut{
                         location.getWorld().spawnParticle(Particle.DUST, a_location, 1, 0.02, 0.02, 0.02, 0.5, dust, true);
                     }
                 }
+            }
+
+            // Check if use_power depleted - stop AO effect
+            if(use_power <= 0 && aoEffectActive && user instanceof Player player) {
+                JPacketSender.sendInfinityAoEnd(player);
+                aoEffectActive = false;
             }
         }
     }

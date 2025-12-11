@@ -27,6 +27,7 @@ public class PacketIds {
     public static final byte TECHNIQUE_COOLDOWN = 0x13;     // Cooldown notification
     public static final byte PARTICLE_EFFECT = 0x14;        // Particle effects
     public static final byte SCREEN_EFFECT = 0x15;          // Screen effects
+    public static final byte INFINITY_AO = 0x17;            // Infinity Ao refraction effect
 
     // Bidirectional
     public static final byte HANDSHAKE = 0x20;
@@ -93,5 +94,14 @@ public class PacketIds {
         public static final int MIZUSHI = 2;       // Malevolent Shrine
         public static final int INFINITY = 3;      // Unlimited Void
         public static final int OTHER = 4;         // Other innate domains
+    }
+
+    /**
+     * Infinity Ao Action Type (action field in INFINITY_AO packet)
+     */
+    public static class InfinityAoAction {
+        public static final byte START = 0x01;     // Start Infinity Ao effect
+        public static final byte SYNC = 0x02;      // Sync position/strength update
+        public static final byte END = 0x03;       // End Infinity Ao effect
     }
 }

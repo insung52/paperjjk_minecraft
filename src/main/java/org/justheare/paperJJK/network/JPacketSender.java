@@ -198,4 +198,77 @@ public class JPacketSender {
             e.printStackTrace();
         }
     }
+
+    /**
+     * INFINITY_AO (0x17) - START action
+     * Start Infinity Ao refraction effect at position with strength
+     */
+    public static void sendInfinityAoStart(Player player, Location position, float strength) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_AO);
+            out.writeByte(PacketIds.InfinityAoAction.START);
+            out.writeDouble(position.getX());
+            out.writeDouble(position.getY());
+            out.writeDouble(position.getZ());
+            out.writeFloat(strength);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.info(String.format("[Packet Send] INFINITY_AO START → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_AO START packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * INFINITY_AO (0x17) - SYNC action
+     * Update Infinity Ao position and strength (for moving targets)
+     */
+    public static void sendInfinityAoSync(Player player, Location position, float strength) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_AO);
+            out.writeByte(PacketIds.InfinityAoAction.SYNC);
+            out.writeDouble(position.getX());
+            out.writeDouble(position.getY());
+            out.writeDouble(position.getZ());
+            out.writeFloat(strength);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.fine(String.format("[Packet Send] INFINITY_AO SYNC → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_AO SYNC packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * INFINITY_AO (0x17) - END action
+     * Stop Infinity Ao refraction effect
+     */
+    public static void sendInfinityAoEnd(Player player) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.INFINITY_AO);
+            out.writeByte(PacketIds.InfinityAoAction.END);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.info(String.format("[Packet Send] INFINITY_AO END → %s", player.getName()));
+        } catch (Exception e) {
+            logger.severe(String.format("INFINITY_AO END packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
 }
