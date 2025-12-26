@@ -12,8 +12,8 @@ import java.util.*;
 public class Infinity extends Jujut{
     // Explosion system fields - Directional Energy Grid (Ray-tracing style)
     private double[][] energyGrid = null;  // [theta_index][phi_index] - energy per direction
-    private static final int ENERGY_RESOLUTION = 32;   // 16x16 = 256 directions
-    private static final double SAMPLE_DENSITY = 2.3;  // Samples per unit surface area
+    private static final int ENERGY_RESOLUTION = 64;   // 16x16 = 256 directions
+    private static final double SAMPLE_DENSITY = 2.01;  // Samples per unit surface area
     boolean murasaki=false;
     boolean unlimit_m=false;
     int soundtick=0;
@@ -462,7 +462,7 @@ public class Infinity extends Jujut{
                          " energy grid with baseEnergy=" + String.format("%.0f", use_power));
         }
         me_tick++;
-        if(me_cr>100){
+        if(me_cr>Math.min(use_power,100)){
             disables();
         }
         for (int r = 0; r < 3; r++){
@@ -476,7 +476,7 @@ public class Infinity extends Jujut{
                 Location blockLoc = location.clone().add(offset);
 
                 // === USE INTERPOLATION (mode: 4=bilinear, 9=smooth) ===
-                int interpolationMode = 9;  // 4개 셀 사용 (빠름)
+                int interpolationMode = 4;  // 4개 셀 사용 (빠름)
 
                 // Get interpolated energy from surrounding cells
                 double directionEnergy = getInterpolatedEnergy(direction, interpolationMode);
@@ -505,7 +505,7 @@ public class Infinity extends Jujut{
                     if(energyGrid[rx][ry]<=0.03){
                         zero_count++;
                     }
-                    energyGrid[rx][ry]*=0.99;
+                    energyGrid[rx][ry]*=0.97;
                 }
             }
 
