@@ -295,6 +295,146 @@ public class Infinity extends Jujut{
     }
 
     /**
+     * Weighted grid cell for interpolation
+     */
+    private static class WeightedGridCell {
+        int thetaIdx;
+        int phiIdx;
+        double weight;
+
+        public WeightedGridCell(int thetaIdx, int phiIdx, double weight) {
+            this.thetaIdx = thetaIdx;
+            this.phiIdx = phiIdx;
+            this.weight = weight;
+        }
+    }
+
+    /**
+     * Get interpolated energy from surrounding grid cells (Bilinear Interpolation)
+     * This smooths out the aliasing artifacts from discrete grid mapping
+     *
+     * @param direction Normalized direction vector
+     * @param mode 4 for 2x2 bilinear, 9 for 3x3 smoothing
+     * @return List of weighted grid cells to sample
+     */
+    private List<WeightedGridCell> getInterpolatedGridCells(Vector direction, int mode) {
+        List<WeightedGridCell> cells = new ArrayList<>();
+        Vector dir = direction.clone().normalize();
+
+        // Convert to continuous grid coordinates
+        double theta = Math.atan2(dir.getZ(), dir.getX());
+        double phi = Math.acos(Math.max(-1.0, Math.min(1.0, dir.getY())));
+
+        // Continuous grid position (not rounded!)
+        double thetaContinuous = (theta + Math.PI) / (2.0 * Math.PI) * ENERGY_RESOLUTION;
+        double phiContinuous = phi / Math.PI * ENERGY_RESOLUTION;
+
+        if (mode == 4) {
+            // === 2x2 Bilinear Interpolation (빠름) ===
+            int thetaFloor = (int) Math.floor(thetaContinuous);
+            int phiFloor = (int) Math.floor(phiContinuous);
+
+            // Fractional parts (0.0 ~ 1.0)
+            double thetaFrac = thetaContinuous - thetaFloor;
+            double phiFrac = phiContinuous - phiFloor;
+
+            // 4 corner cells
+            int[][] corners = {
+                {thetaFloor, phiFloor},
+                {thetaFloor + 1, phiFloor},
+                {thetaFloor, phiFloor + 1},
+                {thetaFloor + 1, phiFloor + 1}
+            };
+
+            // Bilinear weights
+            double[] weights = {
+                (1.0 - thetaFrac) * (1.0 - phiFrac),  // [0,0]
+                thetaFrac * (1.0 - phiFrac),           // [1,0]
+                (1.0 - thetaFrac) * phiFrac,           // [0,1]
+                thetaFrac * phiFrac                    // [1,1]
+            };
+
+            for (int i = 0; i < 4; i++) {
+                int ti = corners[i][0] % ENERGY_RESOLUTION;  // Wrap theta (periodic)
+                int pi = Math.max(0, Math.min(ENERGY_RESOLUTION - 1, corners[i][1]));  // Clamp phi
+                if (ti < 0) ti += ENERGY_RESOLUTION;
+
+                cells.add(new WeightedGridCell(ti, pi, weights[i]));
+            }
+
+        } else if (mode == 9) {
+            // === 3x3 Gaussian-like Smoothing (더 부드러움) ===
+            int thetaCenter = (int) Math.round(thetaContinuous);
+            int phiCenter = (int) Math.round(phiContinuous);
+
+            // 3x3 neighborhood
+            for (int dt = -1; dt <= 1; dt++) {
+                for (int dp = -1; dp <= 1; dp++) {
+                    int ti = (thetaCenter + dt) % ENERGY_RESOLUTION;
+                    int pi = phiCenter + dp;
+
+                    if (ti < 0) ti += ENERGY_RESOLUTION;
+                    if (pi < 0 || pi >= ENERGY_RESOLUTION) continue;
+
+                    // Calculate weight based on distance to cell center
+                    double cellTheta = (ti + 0.5) / ENERGY_RESOLUTION * 2.0 * Math.PI - Math.PI;
+                    double cellPhi = (pi + 0.5) / ENERGY_RESOLUTION * Math.PI;
+
+                    Vector cellDir = new Vector(
+                        Math.sin(cellPhi) * Math.cos(cellTheta),
+                        Math.cos(cellPhi),
+                        Math.sin(cellPhi) * Math.sin(cellTheta)
+                    );
+
+                    // Weight = cosine similarity (angle proximity)
+                    double cosSimilarity = dir.dot(cellDir);
+                    double weight = Math.max(0, cosSimilarity); // Only positive weights
+
+                    if (weight > 0.01) {  // Skip negligible weights
+                        cells.add(new WeightedGridCell(ti, pi, weight));
+                    }
+                }
+            }
+
+            // Normalize weights to sum to 1.0
+            double totalWeight = cells.stream().mapToDouble(c -> c.weight).sum();
+            if (totalWeight > 0) {
+                for (WeightedGridCell cell : cells) {
+                    cell.weight /= totalWeight;
+                }
+            }
+        }
+
+        return cells;
+    }
+
+    /**
+     * Get interpolated energy value for a direction
+     */
+    private double getInterpolatedEnergy(Vector direction, int mode) {
+        List<WeightedGridCell> cells = getInterpolatedGridCells(direction, mode);
+        double totalEnergy = 0.0;
+
+        for (WeightedGridCell cell : cells) {
+            totalEnergy += energyGrid[cell.thetaIdx][cell.phiIdx] * cell.weight;
+        }
+
+        return totalEnergy;
+    }
+
+    /**
+     * Apply energy loss to interpolated grid cells
+     */
+    private void applyInterpolatedEnergyLoss(Vector direction, double energyLoss, int mode) {
+        List<WeightedGridCell> cells = getInterpolatedGridCells(direction, mode);
+
+        for (WeightedGridCell cell : cells) {
+            double cellLoss = energyLoss * cell.weight;
+            energyGrid[cell.thetaIdx][cell.phiIdx] = Math.max(0, energyGrid[cell.thetaIdx][cell.phiIdx] - cellLoss);
+        }
+    }
+
+    /**
      * Modern spherical energy wave explosion
      * Based on the design document: "대규모 현실적 폭발 알고리즘 설계 문서"
      *
@@ -337,13 +477,11 @@ public class Infinity extends Jujut{
                 Vector offset = direction.clone().multiply(me_cr);
                 Location blockLoc = location.clone().add(offset);
 
-                // Convert direction to grid index
-                int[] gridIdx = directionToGridIndex(direction);
-                int thetaIdx = gridIdx[0];
-                int phiIdx = gridIdx[1];
+                // === USE INTERPOLATION (mode: 4=bilinear, 9=smooth) ===
+                int interpolationMode = 4;  // 4개 셀 사용 (빠름)
 
-                // Get energy for this direction
-                double directionEnergy = energyGrid[thetaIdx][phiIdx];
+                // Get interpolated energy from surrounding cells
+                double directionEnergy = getInterpolatedEnergy(direction, interpolationMode);
                 if (directionEnergy <= 0) {
                     continue; // No energy left in this direction
                 }
@@ -354,9 +492,8 @@ public class Infinity extends Jujut{
                 // Reduce energy based on block resistance
                 double energyLoss = Math.max(Math.pow(blockHardness,4.5), 0.001);
 
-
-                // Update grid energy for this direction
-                energyGrid[thetaIdx][phiIdx] = Math.max(0, energyGrid[thetaIdx][phiIdx] - energyLoss);
+                // Apply energy loss to all weighted grid cells (smoothing!)
+                applyInterpolatedEnergyLoss(direction, energyLoss, interpolationMode);
 
                 // Visual particle (rare)
                 if (Math.random() < 0.0002) {
