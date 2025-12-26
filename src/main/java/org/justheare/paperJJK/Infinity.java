@@ -31,8 +31,9 @@ public class Infinity extends Jujut{
     // Explosion system fields
     private Queue<EnergyNode> explosionQueue = new LinkedList<>();
     private Set<String> processedBlocks = new HashSet<>();
-    private static final double SAMPLE_DENSITY = 2.3;  // Samples per unit surface area (adjust for performance)
-    private static final int MAX_NODES_PER_TICK = 500; // Performance limiter
+    private static final double SAMPLE_DENSITY = 2.0;  // Samples per unit surface area (adjust for performance)
+    private static final int SHELLS_PER_TICK = 3;      // How many radius shells to generate per tick (radial density!)
+    private static final int MAX_NODES_PER_TICK = 1000; // Performance limiter
 
     boolean murasaki=false;
     boolean unlimit_m=false;
@@ -288,7 +289,7 @@ public class Infinity extends Jujut{
         // === POWER SCALING (핵심!) ===
         // use_power=20 vs use_power=200 차이를 극대화
         double maxRadius = Math.pow(use_power, 0.9); // 20→8.7블록, 200→40.6블록
-        int totalTicks = (int) ((10 + use_power / 10) * 3);
+        int totalTicks = (int) ((10 + use_power / 10) * 5);
         double baseEnergy = Math.pow(use_power, 1.3); // 20→90, 200→2511 (28배 차이!)
 
         // Debug log (first tick only)
@@ -299,39 +300,46 @@ public class Infinity extends Jujut{
                          " | totalTicks=" + totalTicks);
         }
 
-        // === PHASE 2: Generate new energy nodes for current shell ===
-        // Calculate current radius (linear expansion over time)
-        double progress = (double) currentTick / totalTicks;
-        double currentRadius = maxRadius * progress;
-        double shellThickness = 1.2; // ±0.6 blocks to absorb grid errors
+        // === PHASE 2: Generate new energy nodes for MULTIPLE shells ===
+        // Generate SHELLS_PER_TICK shells per tick to fill gaps
+        for (int shellOffset = 0; shellOffset < SHELLS_PER_TICK; shellOffset++) {
+            int shellTick = currentTick + shellOffset;
 
-        if (currentRadius > 0) {
-            // Sample count proportional to r² (surface area)
-            // Formula: sampleCount = density × 4πr²
-            int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * currentRadius * currentRadius);
-            sampleCount = Math.max(sampleCount, 20); // Minimum samples for small radius
+            // Calculate current radius (linear expansion over time)
+            double progress = (double) shellTick / totalTicks;
+            if (progress > 1.0) break; // Don't exceed max radius
 
-            // Generate uniformly distributed directions using Fibonacci sphere
-            List<Vector> directions = generateFibonacciSphere(sampleCount);
+            double currentRadius = maxRadius * progress;
+            double shellThickness = 0.8; // Shell thickness for sampling variation
 
-            // Create energy nodes on the current shell
-            // 시간이 지날수록 에너지 약간 감소 (먼 거리일수록 약해짐)
-            double initialEnergy = baseEnergy * (1.0 - progress * 0.3);
+            if (currentRadius > 0.5) { // Skip very small radius to avoid duplicate center blocks
+                // Sample count proportional to r² (surface area)
+                // Formula: sampleCount = density × 4πr²
+                int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * currentRadius * currentRadius);
+                sampleCount = Math.max(sampleCount, 20); // Minimum samples for small radius
 
-            for (Vector direction : directions) {
-                // Place node at current radius with small random offset for shell thickness
-                double radiusOffset = currentRadius + (Math.random() - 0.5) * shellThickness;
-                Vector offset = direction.clone().multiply(radiusOffset);
-                Location nodePos = location.clone().add(offset);
+                // Generate uniformly distributed directions using Fibonacci sphere
+                List<Vector> directions = generateFibonacciSphere(sampleCount);
 
-                // Create energy node
-                EnergyNode node = new EnergyNode(nodePos, initialEnergy);
-                String blockKey = node.getBlockKey();
+                // Create energy nodes on the current shell
+                // 시간이 지날수록 에너지 약간 감소 (먼 거리일수록 약해짐)
+                double initialEnergy = baseEnergy * (1.0 - progress * 0.3);
 
-                // Only add if not already processed
-                if (!processedBlocks.contains(blockKey)) {
-                    explosionQueue.add(node);
-                    processedBlocks.add(blockKey);
+                for (Vector direction : directions) {
+                    // Place node at current radius with small random offset for shell thickness
+                    double radiusOffset = currentRadius + (Math.random() - 0.5) * shellThickness;
+                    Vector offset = direction.clone().multiply(radiusOffset);
+                    Location nodePos = location.clone().add(offset);
+
+                    // Create energy node
+                    EnergyNode node = new EnergyNode(nodePos, initialEnergy);
+                    String blockKey = node.getBlockKey();
+
+                    // Only add if not already processed
+                    if (!processedBlocks.contains(blockKey)) {
+                        explosionQueue.add(node);
+                        processedBlocks.add(blockKey);
+                    }
                 }
             }
         }
@@ -363,7 +371,7 @@ public class Infinity extends Jujut{
                 energyLoss = 0.1; // Minimal loss in air/liquid
             } else {
                 // Energy loss based on block resistance
-                energyLoss = Math.max(blockHardness * 2.0 * 0.2, 1.0);
+                energyLoss = Math.max(blockHardness * 2.0 * 0.7, 1.0);
             }
 
             double newEnergy = node.energy - energyLoss;
