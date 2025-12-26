@@ -32,7 +32,7 @@ public class Infinity extends Jujut{
     private Queue<EnergyNode> explosionQueue = new LinkedList<>();
     private Set<String> processedBlocks = new HashSet<>();
     private static final double SAMPLE_DENSITY = 2.0;  // Samples per unit surface area (adjust for performance)
-    private static final int SHELLS_PER_TICK = 3;      // How many radius shells to generate per tick (radial density!)
+    private static final int SHELLS_PER_TICK = 5;      // How many radius shells to generate per tick (radial density!)
     private static final int MAX_NODES_PER_TICK = 1000; // Performance limiter
 
     boolean murasaki=false;
@@ -197,6 +197,7 @@ public class Infinity extends Jujut{
                     if(jujut.location.distance(location)<10&&jujut.use_power>=10&&use_power>=10){
                         use_power+=jujut.use_power;
                         murasaki=true;
+                        me_tick = 0; // Reset explosion tick counter when murasaki starts
                         boolean ind=false;
                         for(Jujut jujut1:jujuts){
                             if(jujut1 instanceof Infinity_passive&&jujut1.user.equals(user)){
@@ -207,7 +208,7 @@ public class Infinity extends Jujut{
                             unlimit_m = true;
                             user.getWorld().playSound(location, Sound.ITEM_TRIDENT_THUNDER, SoundCategory.PLAYERS, 7F, 1.7F);
                             user.getWorld().playSound(location, Sound.BLOCK_END_PORTAL_SPAWN, SoundCategory.PLAYERS, 7F, 1.4F);
-                            time = (int) (10 + use_power / 10);
+                            time = (int) (50 + Math.pow(use_power,1.3) / 10);
                             List<Entity> targets = (List<Entity>) location.getNearbyEntities(1 + time * 3, 1 + time * 3, 1 + time * 3);
                             for (int r = 0; r < targets.size(); r++) {
                                 Entity tentity = targets.get(r);
@@ -276,11 +277,11 @@ public class Infinity extends Jujut{
      * - Queue-based processing for performance stability
      * - Shell-based expansion over time (not instant)
      */
+
+    int me_tick=0;
     public void murasaki_explode(){
         // === PHASE 1: Initialize explosion on first tick ===
-        int currentTick = (int) ((10 + use_power / 10 - time - 1) * 3);
-
-        if (currentTick == 0) {
+        if (me_tick == 0) {
             // Reset explosion state
             explosionQueue.clear();
             processedBlocks.clear();
@@ -288,17 +289,22 @@ public class Infinity extends Jujut{
 
         // === POWER SCALING (핵심!) ===
         // use_power=20 vs use_power=200 차이를 극대화
-        double maxRadius = Math.pow(use_power, 0.9); // 20→8.7블록, 200→40.6블록
-        int totalTicks = (int) ((10 + use_power / 10) * 5);
-        double baseEnergy = Math.pow(use_power, 1.3); // 20→90, 200→2511 (28배 차이!)
+        double m_power = Math.pow(use_power, 1.1);
+        double maxRadius = Math.pow(m_power, 0.9); // 20→8.7블록, 200→40.6블록
+        int totalTicks = (int) (maxRadius * 2.5); // 반경에 비례한 총 틱 수
+        double baseEnergy = Math.pow(m_power, 1.3); // 20→90, 200→2511 (28배 차이!)
 
         // Debug log (first tick only)
-        if (currentTick == 0) {
+        if (me_tick == 0) {
             PaperJJK.log("[Murasaki Explode] use_power=" + use_power +
                          " | maxRadius=" + String.format("%.1f", maxRadius) +
                          " | baseEnergy=" + String.format("%.0f", baseEnergy) +
                          " | totalTicks=" + totalTicks);
         }
+
+        // Use me_tick as currentTick (0부터 시작, 매 호출마다 증가)
+        int currentTick = me_tick;
+        me_tick++;
 
         // === PHASE 2: Generate new energy nodes for MULTIPLE shells ===
         // Generate SHELLS_PER_TICK shells per tick to fill gaps
@@ -312,7 +318,7 @@ public class Infinity extends Jujut{
             double currentRadius = maxRadius * progress;
             double shellThickness = 0.8; // Shell thickness for sampling variation
 
-            if (currentRadius > 0.5) { // Skip very small radius to avoid duplicate center blocks
+            if (currentRadius > 0.3) { // Skip very small radius to avoid duplicate center blocks
                 // Sample count proportional to r² (surface area)
                 // Formula: sampleCount = density × 4πr²
                 int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * currentRadius * currentRadius);
@@ -378,7 +384,7 @@ public class Infinity extends Jujut{
 
             // === PHASE 4: Propagate energy to 6 neighbors (not raycast!) ===
             // 전파 임계값도 use_power에 비례 (강한 폭발일수록 더 멀리 전파)
-            double propagationThreshold = Math.pow(use_power, 1.5); // 20→4.5, 200→14.1
+            double propagationThreshold = Math.pow(m_power, 1.5); // 20→4.5, 200→14.1
             if (newEnergy > propagationThreshold) { // Only propagate if enough energy remains
                 Vector[] neighborOffsets = {
                     new Vector(1, 0, 0),
