@@ -84,16 +84,20 @@ public class Jujut implements Runnable{
     }
     public float breakblock(Location break_location,int breakpower){
         if(!PaperJJK.rule_breakblock){
-            return 1000000;
+            return 1000;
         }
         Block break_block=break_location.getBlock();
         float rr=break_block.getType().getHardness();
         if(break_block.getType().getHardness()>-1) {
             if (rr < breakpower || break_block.isLiquid()) {
                 break_block.setType(Material.AIR);
+                return 1;
             }
+            return rr;
         }
-        return rr;
+        else {
+            return 1000;
+        }
     }
     @Override
     public void run() {

@@ -31,7 +31,7 @@ public class Infinity extends Jujut{
     // Explosion system fields
     private Queue<EnergyNode> explosionQueue = new LinkedList<>();
     private Set<String> processedBlocks = new HashSet<>();
-    private static final double SAMPLE_DENSITY = 0.3;  // Samples per unit surface area (adjust for performance)
+    private static final double SAMPLE_DENSITY = 2.3;  // Samples per unit surface area (adjust for performance)
     private static final int MAX_NODES_PER_TICK = 500; // Performance limiter
 
     boolean murasaki=false;
@@ -351,10 +351,8 @@ public class Infinity extends Jujut{
 
             // Get block at this position
             Location blockLoc = node.position.getBlock().getLocation();
-            float blockHardness = blockLoc.getBlock().getType().getHardness();
-
             // Try to break block using existing breakblock method
-            float remainingEnergy = breakblock(blockLoc, (int) node.energy);
+            float blockHardness = breakblock(blockLoc, (int) node.energy);
 
             // Calculate energy lost to this block
             double energyLoss;
@@ -365,14 +363,14 @@ public class Infinity extends Jujut{
                 energyLoss = 0.1; // Minimal loss in air/liquid
             } else {
                 // Energy loss based on block resistance
-                energyLoss = Math.max(blockHardness * 2.0, 1.0);
+                energyLoss = Math.max(blockHardness * 2.0 * 0.2, 1.0);
             }
 
             double newEnergy = node.energy - energyLoss;
 
             // === PHASE 4: Propagate energy to 6 neighbors (not raycast!) ===
             // 전파 임계값도 use_power에 비례 (강한 폭발일수록 더 멀리 전파)
-            double propagationThreshold = Math.pow(use_power, 0.5); // 20→4.5, 200→14.1
+            double propagationThreshold = Math.pow(use_power, 1.5); // 20→4.5, 200→14.1
             if (newEnergy > propagationThreshold) { // Only propagate if enough energy remains
                 Vector[] neighborOffsets = {
                     new Vector(1, 0, 0),
