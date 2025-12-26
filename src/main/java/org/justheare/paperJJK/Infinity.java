@@ -10,30 +10,11 @@ import org.justheare.paperJJK.network.JPacketSender;
 import java.util.*;
 
 public class Infinity extends Jujut{
-    // === Energy Node System for Realistic Explosion ===
-    /**
-     * Energy Node: Represents a point in space with energy that can propagate to neighbors
-     */
-    private static class EnergyNode {
-        Location position;
-        double energy;
-
-        public EnergyNode(Location position, double energy) {
-            this.position = position;
-            this.energy = energy;
-        }
-
-        public String getBlockKey() {
-            return position.getBlockX() + "," + position.getBlockY() + "," + position.getBlockZ();
-        }
-    }
-
-    // Explosion system fields
-    private Queue<EnergyNode> explosionQueue = new LinkedList<>();
-    private Set<String> processedBlocks = new HashSet<>();
-    private static final double SAMPLE_DENSITY = 2.0;  // Samples per unit surface area (adjust for performance)
-    private static final int SHELLS_PER_TICK = 7;      // How many radius shells to generate per tick (radial density!)
-    private static final int MAX_NODES_PER_TICK = 1000; // Performance limiter
+    // Explosion system fields - Directional Energy Grid (Ray-tracing style)
+    private double[][] energyGrid = null;  // [theta_index][phi_index] - energy per direction
+    private static final int ENERGY_RESOLUTION = 32;   // 16x16 = 256 directions
+    private static final double SAMPLE_DENSITY = 2.0;  // Samples per unit surface area
+    private static final int SHELLS_PER_TICK = 1000;      // How many radius shells to generate per tick (radial density!)
 
     boolean murasaki=false;
     boolean unlimit_m=false;
@@ -198,6 +179,7 @@ public class Infinity extends Jujut{
                         use_power+=jujut.use_power;
                         murasaki=true;
                         me_tick = 0; // Reset explosion tick counter when murasaki starts
+                        me_cr=0;
                         boolean ind=false;
                         for(Jujut jujut1:jujuts){
                             if(jujut1 instanceof Infinity_passive&&jujut1.user.equals(user)){
@@ -267,6 +249,52 @@ public class Infinity extends Jujut{
     }
 
     /**
+     * Convert 3D direction vector to 2D energy grid indices
+     * Uses Equirectangular projection (like Minecraft panorama)
+     *
+     * @param direction Normalized direction vector
+     * @return int[2] - {theta_index, phi_index}
+     */
+    private int[] directionToGridIndex(Vector direction) {
+        // Normalize just in case
+        Vector dir = direction.clone().normalize();
+
+        // Spherical coordinates
+        double theta = Math.atan2(dir.getZ(), dir.getX()); // Longitude: -π to π
+        double phi = Math.acos(Math.max(-1.0, Math.min(1.0, dir.getY()))); // Latitude: 0 to π
+
+        // Map to grid indices
+        int thetaIndex = (int) ((theta + Math.PI) / (2.0 * Math.PI) * ENERGY_RESOLUTION);
+        int phiIndex = (int) (phi / Math.PI * ENERGY_RESOLUTION);
+
+        // Clamp to valid range
+        thetaIndex = Math.max(0, Math.min(ENERGY_RESOLUTION - 1, thetaIndex));
+        phiIndex = Math.max(0, Math.min(ENERGY_RESOLUTION - 1, phiIndex));
+
+        return new int[]{thetaIndex, phiIndex};
+    }
+
+    /**
+     * Convert 2D energy grid indices back to 3D direction vector
+     *
+     * @param thetaIndex Theta grid index
+     * @param phiIndex Phi grid index
+     * @return Normalized direction vector
+     */
+    private Vector gridIndexToDirection(int thetaIndex, int phiIndex) {
+        // Map grid indices back to spherical coordinates
+        double theta = (thetaIndex + 0.5) / ENERGY_RESOLUTION * 2.0 * Math.PI - Math.PI;
+        double phi = (phiIndex + 0.5) / ENERGY_RESOLUTION * Math.PI;
+
+        // Convert to Cartesian
+        double x = Math.sin(phi) * Math.cos(theta);
+        double y = Math.cos(phi);
+        double z = Math.sin(phi) * Math.sin(theta);
+
+        return new Vector(x, y, z);
+    }
+
+    /**
      * Modern spherical energy wave explosion
      * Based on the design document: "대규모 현실적 폭발 알고리즘 설계 문서"
      *
@@ -279,7 +307,145 @@ public class Infinity extends Jujut{
      */
 
     int me_tick=0;
+    int me_cr=0;
     public void murasaki_explode(){
+        // === PHASE 1: Initialize energy grid on first tick ===
+        if (me_tick == 0) {
+            // Create fresh energy grid
+            energyGrid = new double[ENERGY_RESOLUTION][ENERGY_RESOLUTION];
+
+            for (int i = 0; i < ENERGY_RESOLUTION; i++) {
+                for (int j = 0; j < ENERGY_RESOLUTION; j++) {
+                    energyGrid[i][j] = Math.pow(use_power-19,1.1);
+                }
+            }
+
+            PaperJJK.log("[Murasaki Explode] Initialized " + ENERGY_RESOLUTION + "x" + ENERGY_RESOLUTION +
+                         " energy grid with baseEnergy=" + String.format("%.0f", use_power));
+        }
+        me_tick++;
+        if(me_cr>100){
+            disables();
+        }
+        for (int r = 0; r < 1; r++){
+            me_cr++;
+            int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * me_cr * me_cr);
+            sampleCount = Math.max(sampleCount, 20);
+            List<Vector> directions = generateFibonacciSphere(sampleCount);
+            for (Vector direction : directions) {
+                // Get world position
+                Vector offset = direction.clone().multiply(me_cr);
+                Location blockLoc = location.clone().add(offset);
+
+                // Convert direction to grid index
+                int[] gridIdx = directionToGridIndex(direction);
+                int thetaIdx = gridIdx[0];
+                int phiIdx = gridIdx[1];
+
+                // Get energy for this direction
+                double directionEnergy = energyGrid[thetaIdx][phiIdx];
+                if (directionEnergy <= 0) {
+                    continue; // No energy left in this direction
+                }
+
+                // Try to break block
+                float blockHardness = breakblock(blockLoc, (int) directionEnergy);
+
+                // Reduce energy based on block resistance
+                double energyLoss = Math.max(Math.pow(blockHardness,4.5), 0.001);
+
+
+                // Update grid energy for this direction
+                energyGrid[thetaIdx][phiIdx] = Math.max(0, energyGrid[thetaIdx][phiIdx] - energyLoss);
+
+                // Visual particle (rare)
+                if (Math.random() < 0.0005) {
+                    Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 3F);
+                    location.getWorld().spawnParticle(Particle.DUST, blockLoc, 1, 0.5, 0.5, 0.5, 0, dust, true);
+                }
+            }
+            int zero_count=0;
+            for(int rx=0; rx<ENERGY_RESOLUTION; rx++){
+                for(int ry=0; ry<ENERGY_RESOLUTION; ry++){
+                    if(energyGrid[rx][ry]<=0.03){
+                        zero_count++;
+                    }
+                    energyGrid[rx][ry]*=0.99;
+                }
+            }
+
+            if(zero_count>=ENERGY_RESOLUTION*ENERGY_RESOLUTION){
+                disables();
+                break;
+            }
+        }
+
+        /*
+        // === PHASE 2: Calculate explosion parameters ===
+        double m_power = Math.pow(use_power, 1.1);
+        double maxRadius = Math.pow(m_power, 0.9);
+        int totalTicks = (int) (maxRadius * 2.5);
+
+        // === PHASE 3: Process multiple shells this tick ===
+        for (int shellOffset = 0; shellOffset < SHELLS_PER_TICK; shellOffset++) {
+            int shellTick = me_tick + shellOffset;
+
+            // Calculate current radius
+            double progress = (double) shellTick / totalTicks;
+            if (progress > 1.0) break; // Explosion finished
+
+            double currentRadius = maxRadius * progress;
+            if (currentRadius < 0.5) continue; // Skip very small radius
+
+            // === PHASE 4: Sample shell surface ===
+            int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * currentRadius * currentRadius);
+            sampleCount = Math.max(sampleCount, 20);
+
+            List<Vector> directions = generateFibonacciSphere(sampleCount);
+
+            // === PHASE 5: Process each sample point ===
+            for (Vector direction : directions) {
+                // Get world position
+                Vector offset = direction.clone().multiply(currentRadius);
+                Location blockLoc = location.clone().add(offset);
+
+                // Convert direction to grid index
+                int[] gridIdx = directionToGridIndex(direction);
+                int thetaIdx = gridIdx[0];
+                int phiIdx = gridIdx[1];
+
+                // Get energy for this direction
+                double directionEnergy = energyGrid[thetaIdx][phiIdx];
+                if (directionEnergy <= 0) continue; // No energy left in this direction
+
+                // Try to break block
+                float blockHardness = breakblock(blockLoc, (int) directionEnergy);
+
+                // Reduce energy based on block resistance
+                double energyLoss;
+                if (blockHardness < 0) {
+                    // Unbreakable block - massive energy loss
+                    energyLoss = directionEnergy * 0.95;
+                } else if (blockLoc.getBlock().isEmpty() || blockLoc.getBlock().isLiquid()) {
+                    // Air/liquid - minimal loss
+                    energyLoss = 0.5;
+                } else {
+                    // Normal block - energy loss based on hardness
+                    energyLoss = Math.max(blockHardness * 10.0, 2.0);
+                }
+
+                // Update grid energy for this direction
+                energyGrid[thetaIdx][phiIdx] = Math.max(0, energyGrid[thetaIdx][phiIdx] - energyLoss);
+
+                // Visual particle (rare)
+                if (Math.random() < 0.0005) {
+                    Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 3F);
+                    location.getWorld().spawnParticle(Particle.DUST, blockLoc, 1, 0.5, 0.5, 0.5, 0, dust, true);
+                }
+            }
+        }
+        */
+
 
     }
     public void aka(){

@@ -89,9 +89,13 @@ public class Jujut implements Runnable{
         Block break_block=break_location.getBlock();
         float rr=break_block.getType().getHardness();
         if(break_block.getType().getHardness()>-1) {
-            if (rr < breakpower || break_block.isLiquid()) {
+            if(break_block.isLiquid()){
                 break_block.setType(Material.AIR);
-                //return 1;
+                return 1;
+            }
+            if (rr < breakpower) {
+                break_block.setType(Material.AIR);
+                return rr;
             }
             return rr;
         }
