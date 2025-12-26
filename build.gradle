@@ -49,5 +49,5 @@ processResources {
 }
 tasks.jar{
     archiveFileName = 'PaperJJK.jar'
-    destinationDirectory = file('C:\\Users\\rapid\\Desktop\\exfil5\\plugins')
+    destinationDirectory = file('C:\\Users\\rapid\\Desktop\\exfil1.21.11\\plugins')
 }

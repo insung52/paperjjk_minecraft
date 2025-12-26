@@ -11,7 +11,6 @@
           </map>
         </userChosenTypes>
         <autoDetectTypes>
-          <platformType>PAPER</platformType>
           <platformType>ADVENTURE</platformType>
         </autoDetectTypes>
         <projectReimportVersion>1</projectReimportVersion>

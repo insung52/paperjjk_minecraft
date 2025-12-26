@@ -7,35 +7,59 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.justheare.paperJJK.network.JPacketSender;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 public class Infinity extends Jujut{
+    // === Energy Node System for Realistic Explosion ===
+    /**
+     * Energy Node: Represents a point in space with energy that can propagate to neighbors
+     */
+    private static class EnergyNode {
+        Location position;
+        double energy;
+
+        public EnergyNode(Location position, double energy) {
+            this.position = position;
+            this.energy = energy;
+        }
+
+        public String getBlockKey() {
+            return position.getBlockX() + "," + position.getBlockY() + "," + position.getBlockZ();
+        }
+    }
+
+    // Explosion system fields
+    private Queue<EnergyNode> explosionQueue = new LinkedList<>();
+    private Set<String> processedBlocks = new HashSet<>();
+    private static final double SAMPLE_DENSITY = 0.3;  // Samples per unit surface area (adjust for performance)
+    private static final int MAX_NODES_PER_TICK = 500; // Performance limiter
+
     boolean murasaki=false;
     boolean unlimit_m=false;
     int soundtick=0;
     boolean aoEffectActive=false;   // Track if AO packet effect is active
     boolean akaEffectActive=false;  // Track if AKA packet effect is active
     boolean murasakiEffectActive=false;  // Track if MURASAKI packet effect is active
+    private final String uniqueId;  // Unique ID for this skill instance
     @Override
     public void disabled() {
         location.getWorld().playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 3, 2);
 
         // Send END packet when AO effect stops
         if(aoEffectActive && user instanceof Player player) {
-            JPacketSender.sendInfinityAoEnd(player);
+            JPacketSender.sendInfinityAoEnd(player, uniqueId);
             aoEffectActive = false;
         }
 
         // Send END packet when AKA effect stops
         if(akaEffectActive && user instanceof Player player) {
-            JPacketSender.sendInfinityAkaEnd(player);
+            JPacketSender.sendInfinityAkaEnd(player, uniqueId);
             akaEffectActive = false;
         }
 
         // Send END packet when MURASAKI effect stops
         if(murasakiEffectActive && user instanceof Player player) {
-            JPacketSender.sendInfinityMurasakiEnd(player);
+            JPacketSender.sendInfinityMurasakiEnd(player, uniqueId);
             murasakiEffectActive = false;
         }
     }
@@ -53,6 +77,11 @@ public class Infinity extends Jujut{
             this.time = (int) Math.pow(this.time,0.3);
         }
         setcurrent(1,100);
+
+        // Generate unique ID for this skill instance
+        // Format: INFINITY_<type>_<timestamp>_<nanoTime>
+        String effectType = rct ? "AKA" : "AO";
+        this.uniqueId = "INFINITY_" + effectType + "_" + System.currentTimeMillis() + "_" + System.nanoTime();
     }
     @Override
     public void run() {
@@ -66,7 +95,7 @@ public class Infinity extends Jujut{
             if(!aoEffectActive && user instanceof Player player) {
                 // Scale usepower (1-100) to strength (0.1-5.0)
                 float strength = (float) (0.1 * 0.049 + 0.051);  // Linear scale: 1->0.1, 100->5.0
-                JPacketSender.sendInfinityAoStart(player, location, strength);
+                JPacketSender.sendInfinityAoStart(player, location, strength, uniqueId);
                 aoEffectActive = true;
             }
             // Send SYNC packet every 10 ticks (0.5 seconds)
@@ -75,7 +104,7 @@ public class Infinity extends Jujut{
                 // Send position/strength update to client
                 if(user instanceof Player player) {
                     float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
-                    JPacketSender.sendInfinityAoSync(player, location, strength);
+                    JPacketSender.sendInfinityAoSync(player, location, strength, uniqueId);
                 }
             }
         }
@@ -84,7 +113,7 @@ public class Infinity extends Jujut{
             if(!akaEffectActive && user instanceof Player player) {
                 // Scale usepower (1-100) to strength (0.1-5.0)
                 float strength = (float) (0.1 * 0.049 + 0.051);  // Linear scale: 1->0.1, 100->5.0
-                JPacketSender.sendInfinityAkaStart(player, location, strength);
+                JPacketSender.sendInfinityAkaStart(player, location, strength, uniqueId);
                 akaEffectActive = true;
             }
             // Send SYNC packet every 10 ticks (0.5 seconds)
@@ -92,7 +121,7 @@ public class Infinity extends Jujut{
                 // Send position/strength update to client
                 if(user instanceof Player player) {
                     float strength = (float) (use_power / 3.0 * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
-                    JPacketSender.sendInfinityAkaSync(player, location, strength);
+                    JPacketSender.sendInfinityAkaSync(player, location, strength, uniqueId);
                 }
             }
         }
@@ -208,24 +237,168 @@ public class Infinity extends Jujut{
             }
         }
     }
+    /**
+     * Generate uniformly distributed points on a sphere using Fibonacci (Golden Spiral) algorithm
+     * This ensures perfect spherical shape regardless of radius
+     *
+     * @param sampleCount Number of sample points to generate
+     * @return List of normalized direction vectors
+     */
+    private List<Vector> generateFibonacciSphere(int sampleCount) {
+        List<Vector> points = new ArrayList<>();
+        double goldenRatio = (1.0 + Math.sqrt(5.0)) / 2.0;
+        double angleIncrement = 2.0 * Math.PI * goldenRatio;
+
+        for (int i = 0; i < sampleCount; i++) {
+            double t = (double) i / sampleCount;
+            double inclination = Math.acos(1.0 - 2.0 * t);
+            double azimuth = angleIncrement * i;
+
+            double x = Math.sin(inclination) * Math.cos(azimuth);
+            double y = Math.sin(inclination) * Math.sin(azimuth);
+            double z = Math.cos(inclination);
+
+            points.add(new Vector(x, y, z));
+        }
+
+        return points;
+    }
+
+    /**
+     * Modern spherical energy wave explosion
+     * Based on the design document: "대규모 현실적 폭발 알고리즘 설계 문서"
+     *
+     * Key features:
+     * - Perfect spherical shape at all radii (Fibonacci sphere sampling)
+     * - Sample density proportional to r² (no holes at large radius)
+     * - Energy-based propagation with block resistance
+     * - Queue-based processing for performance stability
+     * - Shell-based expansion over time (not instant)
+     */
     public void murasaki_explode(){
-        int tick= (int) ((10+use_power/10-time-1)*3);
-        for(int r=tick; r<tick+3; r++){
-            //PaperJJK.log(r+"");
-            double step = Math.PI / Math.pow(r,0.75) / 8;
-            for (double theta = 0; theta < Math.PI; theta += step) {
-                double phistep = step / Math.sin(theta == 0 || theta == Math.PI ? step : theta)*0.8;
-                for (double phi = 0; phi < 2 * Math.PI; phi += phistep) {
-                    double x = r*0.8 * Math.sin(theta) * Math.cos(phi);
-                    double y = r*0.8 * Math.sin(theta) * Math.sin(phi);
-                    double z = r*0.8 * Math.cos(theta);
-                    Location tlocation = location.clone().add(new Vector(x, y, z));
-                    breakblock(tlocation, (int) (use_power-tick/20));
-                    if(Math.random()<0.0001){
-                        Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 3F);
-                        location.getWorld().spawnParticle(Particle.DUST, tlocation, 1, 1, 1, 1, 0.5, dust, true);
+        // === PHASE 1: Initialize explosion on first tick ===
+        int currentTick = (int) ((10 + use_power / 10 - time - 1) * 3);
+
+        if (currentTick == 0) {
+            // Reset explosion state
+            explosionQueue.clear();
+            processedBlocks.clear();
+        }
+
+        // === POWER SCALING (핵심!) ===
+        // use_power=20 vs use_power=200 차이를 극대화
+        double maxRadius = Math.pow(use_power, 0.9); // 20→8.7블록, 200→40.6블록
+        int totalTicks = (int) ((10 + use_power / 10) * 3);
+        double baseEnergy = Math.pow(use_power, 1.3); // 20→90, 200→2511 (28배 차이!)
+
+        // Debug log (first tick only)
+        if (currentTick == 0) {
+            PaperJJK.log("[Murasaki Explode] use_power=" + use_power +
+                         " | maxRadius=" + String.format("%.1f", maxRadius) +
+                         " | baseEnergy=" + String.format("%.0f", baseEnergy) +
+                         " | totalTicks=" + totalTicks);
+        }
+
+        // === PHASE 2: Generate new energy nodes for current shell ===
+        // Calculate current radius (linear expansion over time)
+        double progress = (double) currentTick / totalTicks;
+        double currentRadius = maxRadius * progress;
+        double shellThickness = 1.2; // ±0.6 blocks to absorb grid errors
+
+        if (currentRadius > 0) {
+            // Sample count proportional to r² (surface area)
+            // Formula: sampleCount = density × 4πr²
+            int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * currentRadius * currentRadius);
+            sampleCount = Math.max(sampleCount, 20); // Minimum samples for small radius
+
+            // Generate uniformly distributed directions using Fibonacci sphere
+            List<Vector> directions = generateFibonacciSphere(sampleCount);
+
+            // Create energy nodes on the current shell
+            // 시간이 지날수록 에너지 약간 감소 (먼 거리일수록 약해짐)
+            double initialEnergy = baseEnergy * (1.0 - progress * 0.3);
+
+            for (Vector direction : directions) {
+                // Place node at current radius with small random offset for shell thickness
+                double radiusOffset = currentRadius + (Math.random() - 0.5) * shellThickness;
+                Vector offset = direction.clone().multiply(radiusOffset);
+                Location nodePos = location.clone().add(offset);
+
+                // Create energy node
+                EnergyNode node = new EnergyNode(nodePos, initialEnergy);
+                String blockKey = node.getBlockKey();
+
+                // Only add if not already processed
+                if (!processedBlocks.contains(blockKey)) {
+                    explosionQueue.add(node);
+                    processedBlocks.add(blockKey);
+                }
+            }
+        }
+
+        // === PHASE 3: Process energy nodes from queue ===
+        int processedCount = 0;
+        Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 3F);
+
+        while (!explosionQueue.isEmpty() && processedCount < MAX_NODES_PER_TICK) {
+            EnergyNode node = explosionQueue.poll();
+            processedCount++;
+
+            // Check if energy is sufficient to affect blocks
+            if (node.energy <= 0) {
+                continue;
+            }
+
+            // Get block at this position
+            Location blockLoc = node.position.getBlock().getLocation();
+            float blockHardness = blockLoc.getBlock().getType().getHardness();
+
+            // Try to break block using existing breakblock method
+            float remainingEnergy = breakblock(blockLoc, (int) node.energy);
+
+            // Calculate energy lost to this block
+            double energyLoss;
+            if (blockHardness < 0) {
+                // Unbreakable block (bedrock, etc.)
+                energyLoss = node.energy * 0.9; // Massive energy loss
+            } else if (blockLoc.getBlock().isEmpty() || blockLoc.getBlock().isLiquid()) {
+                energyLoss = 0.1; // Minimal loss in air/liquid
+            } else {
+                // Energy loss based on block resistance
+                energyLoss = Math.max(blockHardness * 2.0, 1.0);
+            }
+
+            double newEnergy = node.energy - energyLoss;
+
+            // === PHASE 4: Propagate energy to 6 neighbors (not raycast!) ===
+            // 전파 임계값도 use_power에 비례 (강한 폭발일수록 더 멀리 전파)
+            double propagationThreshold = Math.pow(use_power, 0.5); // 20→4.5, 200→14.1
+            if (newEnergy > propagationThreshold) { // Only propagate if enough energy remains
+                Vector[] neighborOffsets = {
+                    new Vector(1, 0, 0),
+                    new Vector(-1, 0, 0),
+                    new Vector(0, 1, 0),
+                    new Vector(0, -1, 0),
+                    new Vector(0, 0, 1),
+                    new Vector(0, 0, -1)
+                };
+
+                for (Vector offset : neighborOffsets) {
+                    Location neighborLoc = blockLoc.clone().add(offset);
+                    EnergyNode neighborNode = new EnergyNode(neighborLoc, newEnergy * 0.95);
+                    String neighborKey = neighborNode.getBlockKey();
+
+                    // Add to queue if not already processed
+                    if (!processedBlocks.contains(neighborKey)) {
+                        explosionQueue.add(neighborNode);
+                        processedBlocks.add(neighborKey);
                     }
                 }
+            }
+
+            // Visual effect (rare to avoid lag)
+            if (Math.random() < 0.0003) {
+                location.getWorld().spawnParticle(Particle.DUST, blockLoc, 1, 1, 1, 1, 0.5, dust, true);
             }
         }
     }
@@ -236,7 +409,7 @@ public class Infinity extends Jujut{
                     // Send START_EXPLODE packet when unlimit_m starts (only once)
                     if(time>1&&!murasakiEffectActive && user instanceof Player player) {
                         float initialRadius = 0.1f;  // Small initial radius
-                        JPacketSender.sendInfinityMurasakiStartExplode(player, location, initialRadius);
+                        JPacketSender.sendInfinityMurasakiStartExplode(player, location, initialRadius, uniqueId);
                         murasakiEffectActive = true;
                     }
 
@@ -247,7 +420,7 @@ public class Infinity extends Jujut{
                         // Radius in blocks: r * 0.8 from murasaki_explode
                         // Each tick, r goes from 0 to (maxTime * 3)
                         float currentRadius = tick * 2.8f;  // Actual radius in blocks
-                        JPacketSender.sendInfinityMurasakiSyncRadius(player, currentRadius);
+                        JPacketSender.sendInfinityMurasakiSyncRadius(player, currentRadius, uniqueId);
                     }
 
                     murasaki_explode();
@@ -256,14 +429,14 @@ public class Infinity extends Jujut{
                     // Normal murasaki - send START packet (only once)
                     if(time>1&&!murasakiEffectActive && user instanceof Player player) {
                         float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
-                        JPacketSender.sendInfinityMurasakiStart(player, location, strength);
+                        JPacketSender.sendInfinityMurasakiStart(player, location, strength, uniqueId);
                         murasakiEffectActive = true;
                     }
 
                     // Normal murasaki - send SYNC packet every 10 ticks (0.5 seconds)
                     if(soundtick%4==0 && user instanceof Player player) {
                         float strength = (float) (use_power / 2.0 * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
-                        JPacketSender.sendInfinityMurasakiSync(player, location, strength);
+                        JPacketSender.sendInfinityMurasakiSync(player, location, strength, uniqueId);
                     }
 
                     if(time%2==0){
@@ -480,7 +653,7 @@ public class Infinity extends Jujut{
 
             // Check if use_power depleted - stop AO effect
             if(use_power <= 0 && aoEffectActive && user instanceof Player player) {
-                JPacketSender.sendInfinityAoEnd(player);
+                JPacketSender.sendInfinityAoEnd(player, uniqueId);
                 aoEffectActive = false;
             }
         }

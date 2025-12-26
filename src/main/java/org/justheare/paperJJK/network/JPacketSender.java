@@ -203,7 +203,7 @@ public class JPacketSender {
      * INFINITY_AO (0x17) - START action
      * Start Infinity Ao refraction effect at position with strength
      */
-    public static void sendInfinityAoStart(Player player, Location position, float strength) {
+    public static void sendInfinityAoStart(Player player, Location position, float strength, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_AO);
@@ -212,12 +212,13 @@ public class JPacketSender {
             out.writeDouble(position.getY());
             out.writeDouble(position.getZ());
             out.writeFloat(strength);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] INFINITY_AO START → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
-                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+            logger.info(String.format("[Packet Send] INFINITY_AO START → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f, id=%s",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength, uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_AO START packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -229,7 +230,7 @@ public class JPacketSender {
      * INFINITY_AO (0x17) - SYNC action
      * Update Infinity Ao position and strength (for moving targets)
      */
-    public static void sendInfinityAoSync(Player player, Location position, float strength) {
+    public static void sendInfinityAoSync(Player player, Location position, float strength, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_AO);
@@ -238,12 +239,13 @@ public class JPacketSender {
             out.writeDouble(position.getY());
             out.writeDouble(position.getZ());
             out.writeFloat(strength);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.fine(String.format("[Packet Send] INFINITY_AO SYNC → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
-                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+            logger.fine(String.format("[Packet Send] INFINITY_AO SYNC → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f, id=%s",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength, uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_AO SYNC packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -255,16 +257,17 @@ public class JPacketSender {
      * INFINITY_AO (0x17) - END action
      * Stop Infinity Ao refraction effect
      */
-    public static void sendInfinityAoEnd(Player player) {
+    public static void sendInfinityAoEnd(Player player, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_AO);
             out.writeByte(PacketIds.InfinityAoAction.END);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] INFINITY_AO END → %s", player.getName()));
+            logger.info(String.format("[Packet Send] INFINITY_AO END → %s: id=%s", player.getName(), uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_AO END packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -277,7 +280,7 @@ public class JPacketSender {
      * Start Infinity Aka expansion effect at position with strength
      * Strength will be inverted on client side for expansion effect
      */
-    public static void sendInfinityAkaStart(Player player, Location position, float strength) {
+    public static void sendInfinityAkaStart(Player player, Location position, float strength, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_AKA);
@@ -286,12 +289,13 @@ public class JPacketSender {
             out.writeDouble(position.getY());
             out.writeDouble(position.getZ());
             out.writeFloat(strength);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] INFINITY_AKA START → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
-                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+            logger.info(String.format("[Packet Send] INFINITY_AKA START → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f, id=%s",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength, uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_AKA START packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -304,7 +308,7 @@ public class JPacketSender {
      * Update Infinity Aka position and strength (for moving projectiles)
      * Strength will be inverted on client side for expansion effect
      */
-    public static void sendInfinityAkaSync(Player player, Location position, float strength) {
+    public static void sendInfinityAkaSync(Player player, Location position, float strength, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_AKA);
@@ -313,12 +317,13 @@ public class JPacketSender {
             out.writeDouble(position.getY());
             out.writeDouble(position.getZ());
             out.writeFloat(strength);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.fine(String.format("[Packet Send] INFINITY_AKA SYNC → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
-                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+            logger.fine(String.format("[Packet Send] INFINITY_AKA SYNC → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f, id=%s",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength, uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_AKA SYNC packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -330,16 +335,17 @@ public class JPacketSender {
      * INFINITY_AKA (0x18) - END action
      * Stop Infinity Aka expansion effect
      */
-    public static void sendInfinityAkaEnd(Player player) {
+    public static void sendInfinityAkaEnd(Player player, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_AKA);
             out.writeByte(PacketIds.InfinityAkaAction.END);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] INFINITY_AKA END → %s", player.getName()));
+            logger.info(String.format("[Packet Send] INFINITY_AKA END → %s: id=%s", player.getName(), uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_AKA END packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -351,7 +357,7 @@ public class JPacketSender {
      * INFINITY_MURASAKI (0x19) - START action (normal moving murasaki)
      * Start Infinity Murasaki purple expansion effect
      */
-    public static void sendInfinityMurasakiStart(Player player, Location position, float strength) {
+    public static void sendInfinityMurasakiStart(Player player, Location position, float strength, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_MURASAKI);
@@ -360,12 +366,13 @@ public class JPacketSender {
             out.writeDouble(position.getY());
             out.writeDouble(position.getZ());
             out.writeFloat(strength);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] INFINITY_MURASAKI START → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
-                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+            logger.info(String.format("[Packet Send] INFINITY_MURASAKI START → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f, id=%s",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength, uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_MURASAKI START packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -377,7 +384,7 @@ public class JPacketSender {
      * INFINITY_MURASAKI (0x19) - SYNC action (normal moving murasaki)
      * Update Murasaki position and strength
      */
-    public static void sendInfinityMurasakiSync(Player player, Location position, float strength) {
+    public static void sendInfinityMurasakiSync(Player player, Location position, float strength, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_MURASAKI);
@@ -386,12 +393,13 @@ public class JPacketSender {
             out.writeDouble(position.getY());
             out.writeDouble(position.getZ());
             out.writeFloat(strength);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.fine(String.format("[Packet Send] INFINITY_MURASAKI SYNC → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f",
-                    player.getName(), position.getX(), position.getY(), position.getZ(), strength));
+            logger.fine(String.format("[Packet Send] INFINITY_MURASAKI SYNC → %s: pos=(%.2f,%.2f,%.2f), strength=%.2f, id=%s",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), strength, uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_MURASAKI SYNC packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -403,7 +411,7 @@ public class JPacketSender {
      * INFINITY_MURASAKI (0x19) - START_EXPLODE action (unlimit_m explosion)
      * Start Murasaki explosion at fixed position
      */
-    public static void sendInfinityMurasakiStartExplode(Player player, Location position, float initialRadius) {
+    public static void sendInfinityMurasakiStartExplode(Player player, Location position, float initialRadius, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_MURASAKI);
@@ -412,12 +420,13 @@ public class JPacketSender {
             out.writeDouble(position.getY());
             out.writeDouble(position.getZ());
             out.writeFloat(initialRadius);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] INFINITY_MURASAKI START_EXPLODE → %s: pos=(%.2f,%.2f,%.2f), radius=%.2f",
-                    player.getName(), position.getX(), position.getY(), position.getZ(), initialRadius));
+            logger.info(String.format("[Packet Send] INFINITY_MURASAKI START_EXPLODE → %s: pos=(%.2f,%.2f,%.2f), radius=%.2f, id=%s",
+                    player.getName(), position.getX(), position.getY(), position.getZ(), initialRadius, uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_MURASAKI START_EXPLODE packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -429,18 +438,19 @@ public class JPacketSender {
      * INFINITY_MURASAKI (0x19) - SYNC_RADIUS action (unlimit_m explosion)
      * Update expanding radius for explosion
      */
-    public static void sendInfinityMurasakiSyncRadius(Player player, float radius) {
+    public static void sendInfinityMurasakiSyncRadius(Player player, float radius, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_MURASAKI);
             out.writeByte(PacketIds.InfinityMurasakiAction.SYNC_RADIUS);
             out.writeFloat(radius);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.fine(String.format("[Packet Send] INFINITY_MURASAKI SYNC_RADIUS → %s: radius=%.2f",
-                    player.getName(), radius));
+            logger.fine(String.format("[Packet Send] INFINITY_MURASAKI SYNC_RADIUS → %s: radius=%.2f, id=%s",
+                    player.getName(), radius, uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_MURASAKI SYNC_RADIUS packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -452,16 +462,17 @@ public class JPacketSender {
      * INFINITY_MURASAKI (0x19) - END action
      * Stop Murasaki effect (both types)
      */
-    public static void sendInfinityMurasakiEnd(Player player) {
+    public static void sendInfinityMurasakiEnd(Player player, String uniqueId) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.INFINITY_MURASAKI);
             out.writeByte(PacketIds.InfinityMurasakiAction.END);
+            out.writeUTF(uniqueId);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] INFINITY_MURASAKI END → %s", player.getName()));
+            logger.info(String.format("[Packet Send] INFINITY_MURASAKI END → %s: id=%s", player.getName(), uniqueId));
         } catch (Exception e) {
             logger.severe(String.format("INFINITY_MURASAKI END packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
