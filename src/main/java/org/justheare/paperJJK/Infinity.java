@@ -32,7 +32,7 @@ public class Infinity extends Jujut{
     private Queue<EnergyNode> explosionQueue = new LinkedList<>();
     private Set<String> processedBlocks = new HashSet<>();
     private static final double SAMPLE_DENSITY = 2.0;  // Samples per unit surface area (adjust for performance)
-    private static final int SHELLS_PER_TICK = 5;      // How many radius shells to generate per tick (radial density!)
+    private static final int SHELLS_PER_TICK = 7;      // How many radius shells to generate per tick (radial density!)
     private static final int MAX_NODES_PER_TICK = 1000; // Performance limiter
 
     boolean murasaki=false;
@@ -208,7 +208,7 @@ public class Infinity extends Jujut{
                             unlimit_m = true;
                             user.getWorld().playSound(location, Sound.ITEM_TRIDENT_THUNDER, SoundCategory.PLAYERS, 7F, 1.7F);
                             user.getWorld().playSound(location, Sound.BLOCK_END_PORTAL_SPAWN, SoundCategory.PLAYERS, 7F, 1.4F);
-                            time = (int) (50 + Math.pow(use_power,1.3) / 10);
+                            time = (int) (50 + Math.pow(use_power,3) / 10);
                             List<Entity> targets = (List<Entity>) location.getNearbyEntities(1 + time * 3, 1 + time * 3, 1 + time * 3);
                             for (int r = 0; r < targets.size(); r++) {
                                 Entity tentity = targets.get(r);
@@ -280,139 +280,7 @@ public class Infinity extends Jujut{
 
     int me_tick=0;
     public void murasaki_explode(){
-        // === PHASE 1: Initialize explosion on first tick ===
-        if (me_tick == 0) {
-            // Reset explosion state
-            explosionQueue.clear();
-            processedBlocks.clear();
-        }
 
-        // === POWER SCALING (핵심!) ===
-        // use_power=20 vs use_power=200 차이를 극대화
-        double m_power = Math.pow(use_power, 1.1);
-        double maxRadius = Math.pow(m_power, 0.9); // 20→8.7블록, 200→40.6블록
-        int totalTicks = (int) (maxRadius * 2.5); // 반경에 비례한 총 틱 수
-        double baseEnergy = Math.pow(m_power, 1.3); // 20→90, 200→2511 (28배 차이!)
-
-        // Debug log (first tick only)
-        if (me_tick == 0) {
-            PaperJJK.log("[Murasaki Explode] use_power=" + use_power +
-                         " | maxRadius=" + String.format("%.1f", maxRadius) +
-                         " | baseEnergy=" + String.format("%.0f", baseEnergy) +
-                         " | totalTicks=" + totalTicks);
-        }
-
-        // Use me_tick as currentTick (0부터 시작, 매 호출마다 증가)
-        int currentTick = me_tick;
-        me_tick++;
-
-        // === PHASE 2: Generate new energy nodes for MULTIPLE shells ===
-        // Generate SHELLS_PER_TICK shells per tick to fill gaps
-        for (int shellOffset = 0; shellOffset < SHELLS_PER_TICK; shellOffset++) {
-            int shellTick = currentTick + shellOffset;
-
-            // Calculate current radius (linear expansion over time)
-            double progress = (double) shellTick / totalTicks;
-            if (progress > 1.0) break; // Don't exceed max radius
-
-            double currentRadius = maxRadius * progress;
-            double shellThickness = 0.8; // Shell thickness for sampling variation
-
-            if (currentRadius > 0.3) { // Skip very small radius to avoid duplicate center blocks
-                // Sample count proportional to r² (surface area)
-                // Formula: sampleCount = density × 4πr²
-                int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * currentRadius * currentRadius);
-                sampleCount = Math.max(sampleCount, 20); // Minimum samples for small radius
-
-                // Generate uniformly distributed directions using Fibonacci sphere
-                List<Vector> directions = generateFibonacciSphere(sampleCount);
-
-                // Create energy nodes on the current shell
-                // 시간이 지날수록 에너지 약간 감소 (먼 거리일수록 약해짐)
-                double initialEnergy = baseEnergy * (1.0 - progress * 0.3);
-
-                for (Vector direction : directions) {
-                    // Place node at current radius with small random offset for shell thickness
-                    double radiusOffset = currentRadius + (Math.random() - 0.5) * shellThickness;
-                    Vector offset = direction.clone().multiply(radiusOffset);
-                    Location nodePos = location.clone().add(offset);
-
-                    // Create energy node
-                    EnergyNode node = new EnergyNode(nodePos, initialEnergy);
-                    String blockKey = node.getBlockKey();
-
-                    // Only add if not already processed
-                    if (!processedBlocks.contains(blockKey)) {
-                        explosionQueue.add(node);
-                        processedBlocks.add(blockKey);
-                    }
-                }
-            }
-        }
-
-        // === PHASE 3: Process energy nodes from queue ===
-        int processedCount = 0;
-        Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 3F);
-
-        while (!explosionQueue.isEmpty() && processedCount < MAX_NODES_PER_TICK) {
-            EnergyNode node = explosionQueue.poll();
-            processedCount++;
-
-            // Check if energy is sufficient to affect blocks
-            if (node.energy <= 0) {
-                continue;
-            }
-
-            // Get block at this position
-            Location blockLoc = node.position.getBlock().getLocation();
-            // Try to break block using existing breakblock method
-            float blockHardness = breakblock(blockLoc, (int) node.energy);
-
-            // Calculate energy lost to this block
-            double energyLoss;
-            if (blockHardness < 0) {
-                // Unbreakable block (bedrock, etc.)
-                energyLoss = node.energy * 0.9; // Massive energy loss
-            } else if (blockLoc.getBlock().isEmpty() || blockLoc.getBlock().isLiquid()) {
-                energyLoss = 0.1; // Minimal loss in air/liquid
-            } else {
-                // Energy loss based on block resistance
-                energyLoss = Math.max(blockHardness * 2.0 * 0.7, 1.0);
-            }
-
-            double newEnergy = node.energy - energyLoss;
-
-            // === PHASE 4: Propagate energy to 6 neighbors (not raycast!) ===
-            // 전파 임계값도 use_power에 비례 (강한 폭발일수록 더 멀리 전파)
-            double propagationThreshold = Math.pow(m_power, 1.5); // 20→4.5, 200→14.1
-            if (newEnergy > propagationThreshold) { // Only propagate if enough energy remains
-                Vector[] neighborOffsets = {
-                    new Vector(1, 0, 0),
-                    new Vector(-1, 0, 0),
-                    new Vector(0, 1, 0),
-                    new Vector(0, -1, 0),
-                    new Vector(0, 0, 1),
-                    new Vector(0, 0, -1)
-                };
-
-                for (Vector offset : neighborOffsets) {
-                    Location neighborLoc = blockLoc.clone().add(offset);
-                    EnergyNode neighborNode = new EnergyNode(neighborLoc, newEnergy * 0.95);
-                    String neighborKey = neighborNode.getBlockKey();
-
-                    // Add to queue if not already processed
-                    if (!processedBlocks.contains(neighborKey)) {
-                        explosionQueue.add(neighborNode);
-                        processedBlocks.add(neighborKey);
-                    }
-                }
-            }
-
-            // Visual effect (rare to avoid lag)
-            if (Math.random() < 0.0003) {
-                location.getWorld().spawnParticle(Particle.DUST, blockLoc, 1, 1, 1, 1, 0.5, dust, true);
-            }
-        }
     }
     public void aka(){
         if(target=='a'){
