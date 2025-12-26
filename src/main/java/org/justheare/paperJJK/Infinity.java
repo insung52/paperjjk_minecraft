@@ -13,9 +13,7 @@ public class Infinity extends Jujut{
     // Explosion system fields - Directional Energy Grid (Ray-tracing style)
     private double[][] energyGrid = null;  // [theta_index][phi_index] - energy per direction
     private static final int ENERGY_RESOLUTION = 32;   // 16x16 = 256 directions
-    private static final double SAMPLE_DENSITY = 2.0;  // Samples per unit surface area
-    private static final int SHELLS_PER_TICK = 1000;      // How many radius shells to generate per tick (radial density!)
-
+    private static final double SAMPLE_DENSITY = 2.3;  // Samples per unit surface area
     boolean murasaki=false;
     boolean unlimit_m=false;
     int soundtick=0;
@@ -467,7 +465,7 @@ public class Infinity extends Jujut{
         if(me_cr>100){
             disables();
         }
-        for (int r = 0; r < 1; r++){
+        for (int r = 0; r < 3; r++){
             me_cr++;
             int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * me_cr * me_cr);
             sampleCount = Math.max(sampleCount, 20);
@@ -478,7 +476,7 @@ public class Infinity extends Jujut{
                 Location blockLoc = location.clone().add(offset);
 
                 // === USE INTERPOLATION (mode: 4=bilinear, 9=smooth) ===
-                int interpolationMode = 4;  // 4개 셀 사용 (빠름)
+                int interpolationMode = 9;  // 4개 셀 사용 (빠름)
 
                 // Get interpolated energy from surrounding cells
                 double directionEnergy = getInterpolatedEnergy(direction, interpolationMode);
@@ -516,74 +514,6 @@ public class Infinity extends Jujut{
                 break;
             }
         }
-
-        /*
-        // === PHASE 2: Calculate explosion parameters ===
-        double m_power = Math.pow(use_power, 1.1);
-        double maxRadius = Math.pow(m_power, 0.9);
-        int totalTicks = (int) (maxRadius * 2.5);
-
-        // === PHASE 3: Process multiple shells this tick ===
-        for (int shellOffset = 0; shellOffset < SHELLS_PER_TICK; shellOffset++) {
-            int shellTick = me_tick + shellOffset;
-
-            // Calculate current radius
-            double progress = (double) shellTick / totalTicks;
-            if (progress > 1.0) break; // Explosion finished
-
-            double currentRadius = maxRadius * progress;
-            if (currentRadius < 0.5) continue; // Skip very small radius
-
-            // === PHASE 4: Sample shell surface ===
-            int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * currentRadius * currentRadius);
-            sampleCount = Math.max(sampleCount, 20);
-
-            List<Vector> directions = generateFibonacciSphere(sampleCount);
-
-            // === PHASE 5: Process each sample point ===
-            for (Vector direction : directions) {
-                // Get world position
-                Vector offset = direction.clone().multiply(currentRadius);
-                Location blockLoc = location.clone().add(offset);
-
-                // Convert direction to grid index
-                int[] gridIdx = directionToGridIndex(direction);
-                int thetaIdx = gridIdx[0];
-                int phiIdx = gridIdx[1];
-
-                // Get energy for this direction
-                double directionEnergy = energyGrid[thetaIdx][phiIdx];
-                if (directionEnergy <= 0) continue; // No energy left in this direction
-
-                // Try to break block
-                float blockHardness = breakblock(blockLoc, (int) directionEnergy);
-
-                // Reduce energy based on block resistance
-                double energyLoss;
-                if (blockHardness < 0) {
-                    // Unbreakable block - massive energy loss
-                    energyLoss = directionEnergy * 0.95;
-                } else if (blockLoc.getBlock().isEmpty() || blockLoc.getBlock().isLiquid()) {
-                    // Air/liquid - minimal loss
-                    energyLoss = 0.5;
-                } else {
-                    // Normal block - energy loss based on hardness
-                    energyLoss = Math.max(blockHardness * 10.0, 2.0);
-                }
-
-                // Update grid energy for this direction
-                energyGrid[thetaIdx][phiIdx] = Math.max(0, energyGrid[thetaIdx][phiIdx] - energyLoss);
-
-                // Visual particle (rare)
-                if (Math.random() < 0.0005) {
-                    Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 3F);
-                    location.getWorld().spawnParticle(Particle.DUST, blockLoc, 1, 0.5, 0.5, 0.5, 0, dust, true);
-                }
-            }
-        }
-        */
-
-
     }
     public void aka(){
         if(target=='a'){
