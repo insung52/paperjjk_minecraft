@@ -359,7 +359,7 @@ public class Infinity extends Jujut{
                 energyGrid[thetaIdx][phiIdx] = Math.max(0, energyGrid[thetaIdx][phiIdx] - energyLoss);
 
                 // Visual particle (rare)
-                if (Math.random() < 0.0005) {
+                if (Math.random() < 0.0002) {
                     Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 3F);
                     location.getWorld().spawnParticle(Particle.DUST, blockLoc, 1, 0.5, 0.5, 0.5, 0, dust, true);
                 }
