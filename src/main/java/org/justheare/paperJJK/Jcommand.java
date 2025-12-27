@@ -340,6 +340,9 @@ public class Jcommand implements TabExecutor {
                 else if(args[0].equals("config")){
                     handleConfigCommand(player, args);
                 }
+                else if(args[0].equals("debug")){
+                    handleDebugCommand(player, args);
+                }
                 else if(args[0].equals("rule")){
                     if(args[1].equals("breakblock")){
                         if(args[2].equals("true")){
@@ -452,11 +455,71 @@ public class Jcommand implements TabExecutor {
         player.sendMessage("§a스킬 설정 완료!");
         player.sendMessage("§7" + slotName + "키 → §b" + JujutFactory.getSkillDisplayName(fullSkillId));
     }
+
+    /**
+     * Handle /jjk debug <type> <args...> command
+     * Example: /jjk debug sphere 10 -> Visualize sphere surface with radius 10
+     */
+    private void handleDebugCommand(Player player, String[] args) {
+        // Show help if no subcommand
+        if (args.length < 2) {
+            player.sendMessage("§6========== Debug Commands ==========");
+            player.sendMessage("§7/jjk debug sphere <radius> §f- Visualize sphere surface");
+            return;
+        }
+
+        String debugType = args[1].toLowerCase();
+
+        if (debugType.equals("sphere")) {
+            // Parse radius
+            if (args.length < 3) {
+                player.sendMessage("§cUsage: /jjk debug sphere <radius>");
+                player.sendMessage("§7Example: /jjk debug sphere 10");
+                return;
+            }
+
+            int radius;
+            try {
+                radius = Integer.parseInt(args[2]);
+            } catch (NumberFormatException e) {
+                player.sendMessage("§cInvalid radius! Must be a number.");
+                return;
+            }
+
+            // Clamp radius
+            if (radius < 1 || radius > 200) {
+                player.sendMessage("§cRadius must be between 1 and 200!");
+                return;
+            }
+
+            // Get sphere surface offsets
+            java.util.Set<org.bukkit.util.Vector> offsets = PaperJJK.getSphereSurfaceOffsets(radius);
+
+            player.sendMessage("§6Generating sphere with radius §e" + radius + "§6...");
+            player.sendMessage("§7Total blocks: §e" + offsets.size());
+
+            // Place sandstone blocks at each offset
+            org.bukkit.Location center = player.getLocation();
+            int blocksPlaced = 0;
+
+            for (org.bukkit.util.Vector offset : offsets) {
+                org.bukkit.Location blockLoc = center.clone().add(offset);
+                blockLoc.getBlock().setType(Material.SANDSTONE);
+                blocksPlaced++;
+            }
+
+            player.sendMessage("§aPlaced §e" + blocksPlaced + " §asandstone blocks!");
+        } else {
+            player.sendMessage("§cUnknown debug type: " + debugType);
+            player.sendMessage("§7Available: sphere");
+        }
+    }
+
     @Override
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if(command.getName().equalsIgnoreCase("jjk")){
             if(args.length==1){
-                return Arrays.asList("refill","basic","reset","set","cw","ce","mahoraga","id","ed","nb","save","domaininfo","domainverify","rule","config");
+                return Arrays.asList("refill","basic","reset","set","cw","ce","mahoraga","id","ed","nb","save","domaininfo","domainverify","rule","config","debug");
             }
             else if(args.length==2){
                 if(args[0].equals("basic")){
@@ -473,6 +536,9 @@ public class Jcommand implements TabExecutor {
                 }
                 else if(args[0].equals("config")){
                     return Arrays.asList("x","c","v","b");
+                }
+                else if(args[0].equals("debug")){
+                    return Arrays.asList("sphere");
                 }
             }
             else if(args.length==3){

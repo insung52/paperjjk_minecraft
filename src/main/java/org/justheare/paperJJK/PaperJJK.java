@@ -20,7 +20,11 @@ import org.justheare.paperJJK.network.JPacketHandler;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 public final class PaperJJK extends JavaPlugin {
     static boolean rule_breakblock=true;
@@ -29,9 +33,25 @@ public final class PaperJJK extends JavaPlugin {
     public static PaperJJK jjkplugin;
     public static ArrayList<Jobject> jobjects=new ArrayList<>();
     public static ArrayList<Jdomain_expand> expanded_domains=new ArrayList<>();
+
+    // Sphere surface coordinate cache (1/8 octave optimization)
+    // Maps radius → Set of [dx, dy, dz] where dx≥0, dy≥0, dz≥0
+    // Surface definition: (r-1)² < dx² + dy² + dz² ≤ r²
+    private static Map<Integer, Set<short[]>> sphereSurfaceCache = new HashMap<>();
+    private static final int MAX_CACHED_RADIUS = 200;
     @Override
     public void onEnable() {
         jjkplugin= (PaperJJK) Bukkit.getPluginManager().getPlugin("PaperJJK");
+
+        // Initialize sphere surface coordinate cache
+        log("========================================");
+        log("  Generating sphere surface cache (1-" + MAX_CACHED_RADIUS + ")...");
+        long startTime = System.currentTimeMillis();
+        generateSphereSurfaceCache();
+        long endTime = System.currentTimeMillis();
+        log("  Cache generation complete (" + (endTime - startTime) + "ms)");
+        log("  Total cached radii: " + sphereSurfaceCache.size());
+        log("========================================");
 
         // Plugin Messaging 채널 등록 (클라이언트 모드 통신)
         Messenger messenger = getServer().getMessenger();
@@ -222,6 +242,76 @@ public final class PaperJJK extends JavaPlugin {
             }
         }
         return false;
+    }
+
+    /**
+     * Generate sphere surface coordinate cache for radii 1 to MAX_CACHED_RADIUS
+     * Stores only 1/8 octave (dx≥0, dy≥0, dz≥0) for memory efficiency
+     * Surface definition: (r-1)² < dx² + dy² + dz² ≤ r²
+     */
+    private static void generateSphereSurfaceCache() {
+        for (int radius = 1; radius <= MAX_CACHED_RADIUS; radius++) {
+            Set<short[]> surfaceOffsets = new HashSet<>();
+
+            // Calculate distance bounds
+            int rSquared = radius * radius;
+            int rMinusOneSquared = (radius - 1) * (radius - 1);
+
+            // Scan only positive octant (1/8 of sphere)
+            for (int dx = 0; dx <= radius; dx++) {
+                for (int dy = 0; dy <= radius; dy++) {
+                    for (int dz = 0; dz <= radius; dz++) {
+                        int distSquared = dx * dx + dy * dy + dz * dz;
+
+                        // Check if on surface: (r-1)² < dist² ≤ r²
+                        if (distSquared > rMinusOneSquared && distSquared <= rSquared) {
+                            surfaceOffsets.add(new short[]{(short) dx, (short) dy, (short) dz});
+                        }
+                    }
+                }
+            }
+
+            sphereSurfaceCache.put(radius, surfaceOffsets);
+        }
+    }
+
+    /**
+     * Get all sphere surface offsets for a given radius
+     * Returns full sphere by expanding 1/8 octave to all 8 octants
+     *
+     * @param radius Sphere radius (1-200)
+     * @return Set of Vector offsets representing sphere surface blocks
+     */
+    public static Set<Vector> getSphereSurfaceOffsets(int radius) {
+        // Clamp radius to valid range
+        if (radius < 1) radius = 1;
+        if (radius > MAX_CACHED_RADIUS) radius = MAX_CACHED_RADIUS;
+
+        Set<short[]> octaveOffsets = sphereSurfaceCache.get(radius);
+        if (octaveOffsets == null) {
+            return new HashSet<>();
+        }
+
+        Set<Vector> allOffsets = new HashSet<>();
+
+        // Expand 1/8 octave to all 8 octants using ±x, ±y, ±z
+        for (short[] offset : octaveOffsets) {
+            int dx = offset[0];
+            int dy = offset[1];
+            int dz = offset[2];
+
+            // Generate all sign combinations
+            // For zero coordinates, we get fewer unique combinations (Set handles duplicates)
+            for (int sx = -1; sx <= 1; sx += 2) {
+                for (int sy = -1; sy <= 1; sy += 2) {
+                    for (int sz = -1; sz <= 1; sz += 2) {
+                        allOffsets.add(new Vector(dx * sx, dy * sy, dz * sz));
+                    }
+                }
+            }
+        }
+
+        return allOffsets;
     }
 }
 class manage implements Runnable{
