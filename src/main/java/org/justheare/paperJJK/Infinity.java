@@ -12,8 +12,7 @@ import java.util.*;
 public class Infinity extends Jujut{
     // Explosion system fields - Directional Energy Grid (Ray-tracing style)
     private double[][] energyGrid = null;  // [theta_index][phi_index] - energy per direction
-    private static final int ENERGY_RESOLUTION = 64;   // 16x16 = 256 directions
-    private static final double SAMPLE_DENSITY = 2.01;  // Samples per unit surface area
+    private static final int ENERGY_RESOLUTION = 64;   // 64x64 = 4096 directions
     boolean murasaki=false;
     boolean unlimit_m=false;
     int soundtick=0;
@@ -221,32 +220,6 @@ public class Infinity extends Jujut{
             }
         }
     }
-    /**
-     * Generate uniformly distributed points on a sphere using Fibonacci (Golden Spiral) algorithm
-     * This ensures perfect spherical shape regardless of radius
-     *
-     * @param sampleCount Number of sample points to generate
-     * @return List of normalized direction vectors
-     */
-    private List<Vector> generateFibonacciSphere(int sampleCount) {
-        List<Vector> points = new ArrayList<>();
-        double goldenRatio = (1.0 + Math.sqrt(5.0)) / 2.0;
-        double angleIncrement = 2.0 * Math.PI * goldenRatio;
-
-        for (int i = 0; i < sampleCount; i++) {
-            double t = (double) i / sampleCount;
-            double inclination = Math.acos(1.0 - 2.0 * t);
-            double azimuth = angleIncrement * i;
-
-            double x = Math.sin(inclination) * Math.cos(azimuth);
-            double y = Math.sin(inclination) * Math.sin(azimuth);
-            double z = Math.cos(inclination);
-
-            points.add(new Vector(x, y, z));
-        }
-
-        return points;
-    }
 
     /**
      * Convert 3D direction vector to 2D energy grid indices
@@ -436,13 +409,13 @@ public class Infinity extends Jujut{
 
     /**
      * Modern spherical energy wave explosion
-     * Based on the design document: "대규모 현실적 폭발 알고리즘 설계 문서"
+     * Based on the design document: "대규모 현실적 폭발 알고리즘 설계 문서" + "구 표면 좌표 캐시"
      *
      * Key features:
-     * - Perfect spherical shape at all radii (Fibonacci sphere sampling)
-     * - Sample density proportional to r² (no holes at large radius)
-     * - Energy-based propagation with block resistance
-     * - Queue-based processing for performance stability
+     * - Perfect spherical shape using pre-cached integer grid (PaperJJK.getSphereSurfaceOffsets)
+     * - No holes, no gaps, no overlaps (each block processed exactly once)
+     * - Energy-based propagation with directional tracking
+     * - Bilinear interpolation for smooth energy distribution
      * - Shell-based expansion over time (not instant)
      */
 
@@ -489,29 +462,34 @@ public class Infinity extends Jujut{
         }
         for (int r = 0; r < 2; r++){
             me_cr++;
-            int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * me_cr * me_cr);
-            sampleCount = Math.max(sampleCount, 20);
-            List<Vector> directions = generateFibonacciSphere(sampleCount);
-            for (Vector direction : directions) {
+
+            // === USE PRE-CACHED SPHERE SURFACE COORDINATES ===
+            // Get exact integer block coordinates for this radius
+            Set<Vector> surfaceOffsets = PaperJJK.getSphereSurfaceOffsets(me_cr);
+
+            for (Vector offset : surfaceOffsets) {
                 // Get world position
-                Vector offset = direction.clone().multiply(me_cr);
                 Location blockLoc = location.clone().add(offset);
 
+                // Calculate normalized direction from center to this block
+                Vector direction = offset.clone().normalize();
+
                 // === USE INTERPOLATION (mode: 4=bilinear, 9=smooth) ===
-
-
                 // Get interpolated energy from surrounding cells
                 double directionEnergy = getInterpolatedEnergy(direction, interpolationMode) + (Math.random()-0.3);
                 if (directionEnergy <= 0) {
                     continue; // No energy left in this direction
                 }
+
                 // Try to break block
                 float blockHardness = breakblock(blockLoc, (int) directionEnergy);
                 if(blockHardness<=0){
                     continue;
                 }
+
                 // Reduce energy based on block resistance
                 double energyLoss = Math.max(Math.pow(blockHardness,4.5), 0.001);
+
                 // Apply energy loss to all weighted grid cells (smoothing!)
                 applyInterpolatedEnergyLoss(direction, energyLoss, interpolationMode);
             }
