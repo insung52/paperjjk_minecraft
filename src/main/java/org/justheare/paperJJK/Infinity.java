@@ -189,6 +189,9 @@ public class Infinity extends Jujut{
                             user.getWorld().playSound(location, Sound.ITEM_TRIDENT_THUNDER, SoundCategory.PLAYERS, 7F, 1.7F);
                             user.getWorld().playSound(location, Sound.BLOCK_END_PORTAL_SPAWN, SoundCategory.PLAYERS, 7F, 1.4F);
                             time = (int) (50 + Math.pow(use_power,3) / 10);
+                            j_entities = new ArrayList<Entity>();
+                            jobject.damaget((LivingEntity) user, 'j', Math.pow(use_power, 0.7), false, "murasaki", false);
+                            /*
                             List<Entity> targets = (List<Entity>) location.getNearbyEntities(1 + time * 3, 1 + time * 3, 1 + time * 3);
                             for (int r = 0; r < targets.size(); r++) {
                                 Entity tentity = targets.get(r);
@@ -203,8 +206,7 @@ public class Infinity extends Jujut{
                                         jobject.damaget(living, 'j', Math.pow(use_power, 1) * 10 - Math.pow(d_vector.length(), 0.8), false,"murasaki",false);
                                     }
                                 }
-                            }
-
+                            }*/
                         }
                         else{
                             location.add(location.getDirection().clone().multiply(-1*jujut.use_power/5));
@@ -446,6 +448,7 @@ public class Infinity extends Jujut{
 
     int me_tick=0;
     int me_cr=0;
+    int interpolationMode = 4;  // 4개 셀 사용 (빠름)
     public void murasaki_explode(){
         // === PHASE 1: Initialize energy grid on first tick ===
         if (me_tick == 0) {
@@ -462,10 +465,29 @@ public class Infinity extends Jujut{
                          " energy grid with baseEnergy=" + String.format("%.0f", use_power));
         }
         me_tick++;
+        if(me_tick%2==0){
+            List<Entity> targets = (List<Entity>) location.getNearbyEntities(me_cr+2, me_cr+2, me_cr+2);
+            targets.remove(user);
+            targets.removeAll(j_entities);
+            for (int r = 0; r < targets.size(); r++) {
+                Entity tentity = targets.get(r);
+                Vector d_vector = d_location(location, tentity.getLocation());
+                if (d_vector.length() <= me_cr + 2 + tentity.getHeight() + tentity.getWidth()) {
+                    j_entities.add(tentity);
+                    if (tentity instanceof LivingEntity living) {
+                        jobject.damaget(living, 'j', 2+Math.pow(getInterpolatedEnergy(d_vector, 4), 1) * 10, false,"murasaki",false);
+                    }
+                    else {
+
+                        //tentity.remove();
+                    }
+                }
+            }
+        }
         if(me_cr>Math.min(use_power,100)){
             disables();
         }
-        for (int r = 0; r < 3; r++){
+        for (int r = 0; r < 2; r++){
             me_cr++;
             int sampleCount = (int) (SAMPLE_DENSITY * 4.0 * Math.PI * me_cr * me_cr);
             sampleCount = Math.max(sampleCount, 20);
@@ -476,28 +498,22 @@ public class Infinity extends Jujut{
                 Location blockLoc = location.clone().add(offset);
 
                 // === USE INTERPOLATION (mode: 4=bilinear, 9=smooth) ===
-                int interpolationMode = 4;  // 4개 셀 사용 (빠름)
+
 
                 // Get interpolated energy from surrounding cells
-                double directionEnergy = getInterpolatedEnergy(direction, interpolationMode);
+                double directionEnergy = getInterpolatedEnergy(direction, interpolationMode) + (Math.random()-0.3);
                 if (directionEnergy <= 0) {
                     continue; // No energy left in this direction
                 }
-
                 // Try to break block
                 float blockHardness = breakblock(blockLoc, (int) directionEnergy);
-
+                if(blockHardness<=0){
+                    continue;
+                }
                 // Reduce energy based on block resistance
                 double energyLoss = Math.max(Math.pow(blockHardness,4.5), 0.001);
-
                 // Apply energy loss to all weighted grid cells (smoothing!)
                 applyInterpolatedEnergyLoss(direction, energyLoss, interpolationMode);
-
-                // Visual particle (rare)
-                if (Math.random() < 0.0002) {
-                    Particle.DustOptions dust = new Particle.DustOptions(Color.PURPLE, 3F);
-                    location.getWorld().spawnParticle(Particle.DUST, blockLoc, 1, 0.5, 0.5, 0.5, 0, dust, true);
-                }
             }
             int zero_count=0;
             for(int rx=0; rx<ENERGY_RESOLUTION; rx++){
@@ -528,11 +544,8 @@ public class Infinity extends Jujut{
 
                     // Send SYNC_RADIUS every tick to update expanding radius
                     if(user instanceof Player player) {
-                        // Calculate current tick of explosion (starts at 0, increases)
-                        int tick = (int) ((10 + use_power / 10 - time - 1) * 3);
-                        // Radius in blocks: r * 0.8 from murasaki_explode
-                        // Each tick, r goes from 0 to (maxTime * 3)
-                        float currentRadius = tick * 2.8f;  // Actual radius in blocks
+                        // Use me_cr (current radius from new explosion algorithm)
+                        float currentRadius = me_cr;  // Actual radius in blocks
                         JPacketSender.sendInfinityMurasakiSyncRadius(player, currentRadius, uniqueId);
                     }
 
