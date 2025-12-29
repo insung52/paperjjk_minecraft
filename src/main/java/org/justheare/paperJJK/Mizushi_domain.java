@@ -141,13 +141,15 @@ public class Mizushi_domain extends Jdomain_innate{
 }
 class Mizushi_effector extends Jdomain_effector{
     Mizushi_domain domain;
-    int speed=130000;
     double tick1=0;
     double tick2=0;
     double rx,ry,rz;
-    // Sphere surface cache variables
+    // Sphere surface cache variables (normal mode)
     java.util.List<Vector> shellBlockList = null;  // Current shell's block offsets
     int shellBlockIndex = 0;  // Progress through current shell
+    // Sphere surface cache variables (special mode - fuga)
+    java.util.List<Vector> shellBlockList_special = null;
+    int shellBlockIndex_special = 0;
     boolean startPacketSent = false;
     Particle.DustOptions dark_dust2=new Particle.DustOptions(Color.fromRGB(60,0,0), 1F);
     public void effect_tick(){
@@ -161,61 +163,107 @@ class Mizushi_effector extends Jdomain_effector{
 
             if(tick>20){
                 if(domain.special){
-                    for(int r=0; r<20000; r++){
-                        rx = Math.sin(tick1 / domain.current_radius / 4 * Math.PI) * Math.sin(tick2 / domain.current_radius / 4 * Math.PI) * domain.current_radius;
-                        ry = Math.cos(tick2 / domain.current_radius / 4 * Math.PI) * domain.current_radius;
-                        rz = Math.cos(tick1 / domain.current_radius / 4 * Math.PI) * Math.sin(tick2 / domain.current_radius / 4 * Math.PI) * domain.current_radius;
-                        if(domain.onground&&rx<0){
-                            continue;
+                    // === SPECIAL MODE (FUGA) - PROCESS UP TO 3 SHELLS PER TICK ===
+                    for (int shellCount = 0; shellCount < 8; shellCount++) {
+                        // Stop if reached max radius
+                        if (domain.current_radius >= domain.nb_range) {
+                            domain.special = false;
+                            domain.current_radius = domain.nb_range;
+                            domain.undrow_expand();
+                            break;
                         }
-                        Location tlocation = domain.nb_location.clone().add(ry, rx-4-Math.random(), rz);
-                        if(tlocation.getBlock().isEmpty()){
-                            if(Math.random()>Math.pow(domain.current_radius*1.0/200.0,0.3)){
-                                tlocation.getWorld().spawnParticle(Particle.FLAME, tlocation, 1, 1, 1, 1, 0.1, null, true);
+
+                        // Initialize shell block list if needed (new radius or first time)
+                        if (shellBlockList_special == null || shellBlockIndex_special >= shellBlockList_special.size()) {
+                            java.util.Set<Vector> offsets = PaperJJK.getSphereSurfaceOffsets(domain.current_radius);
+                            shellBlockList_special = new java.util.ArrayList<>(offsets);
+                            shellBlockIndex_special = 0;
+                        }
+
+                        // Process up to 20000 blocks per tick (same as original speed)
+                        int blocksProcessed = 0;
+                        while (blocksProcessed < 500000 && shellBlockIndex_special < shellBlockList_special.size()) {
+                            Vector offset = shellBlockList_special.get(shellBlockIndex_special);
+
+                            double y_offset = offset.getY();
+                            double x_offset = offset.getX();
+                            double z_offset = offset.getZ();
+
+                            // If onground, skip blocks below ground (rx<0 in original code)
+                            if (domain.onground && y_offset < 0) {
+                                shellBlockIndex_special++;
+                                blocksProcessed++;
+                                continue;
                             }
 
-                    /*if(tlocation.clone().add(0,-1,0).getBlock().isSolid()){
-                        tlocation.getBlock().setType(Material.FIRE);
-                    }*/
-                        }
-                        else if(Math.random()>0.2){
-                            tlocation.createExplosion(domain.owner.player,5,PaperJJK.rule_breakblock,PaperJJK.rule_breakblock);
+                            // Get block location (original: add(ry, rx-4-Math.random(), rz))
+                            Location tlocation = domain.nb_location.clone().add(x_offset, y_offset - 4 - Math.random(), z_offset);
 
-                        }
-                        tick1+=1.2;
-                        if (tick1 >= ((domain.onground)?(domain.current_radius * 4):(domain.current_radius*8))) {
-                            tick1 = 0;
-                            tick2+=3;
-                            if (tick2 >= ((domain.onground)?(domain.current_radius * 4):(domain.current_radius*8))) {
-                                domain.current_radius+=3;
-                                tick1=0;
-                                tick2=0;
-                                ArrayList<LivingEntity> tentities = (ArrayList<LivingEntity>) domain.nb_location.getNearbyLivingEntities(domain.current_radius);
-                                tentities.remove(domain.owner.user);
-                                tentities.removeAll(domain.fuga_hit);
-                                for(LivingEntity tentity : tentities){
-                                    if(tentity.getLocation().distance(domain.nb_location)>domain.current_radius){
-                                        continue;
-                                    }
-                                    if(domain.onground){
-                                        if(tentity.getLocation().getY()<domain.nb_location.getY()-5){
-                                            continue;
-                                        }
-                                    }
-                                    domain.fuga_hit.add(tentity);
-                                    tentity.setFireTicks(4444);
-                                    domain.owner.damaget(tentity,'j',domain.nb_range*4,false,"fuga",false);
+                            // === TODO: PARTICLE/EXPLOSION/DAMAGE LOGIC ===
+                            // Original logic:
+                            // - if empty block: spawn FLAME particle (with probability based on radius)
+                            // - else: 80% chance to create explosion
+                            //
+                            // Placeholder for user to implement:
+                            if (tlocation.getBlock().isEmpty()) {
+                                // TODO: Particle spawning
+                                if(Math.random()>Math.pow(domain.current_radius*1.0/200.0,0.3)){
+                                    tlocation.getWorld().spawnParticle(Particle.FLAME, tlocation, 1, 1, 1, 1, 0.1, null, true);
                                 }
-                                if (domain.current_radius >= domain.nb_range) {
-                                    domain.special=false;
-                                    domain.current_radius=domain.nb_range;
-                                    domain.undrow_expand();
-                                    break;
+                            } else {
+                                // TODO: Explosion
+                                if(tlocation.getBlock().isLiquid()){
+                                    tlocation.getBlock().setType(Material.FIRE);
                                 }
-                                if(domain.current_radius%4==0){
-                                    break;
+                                else if(Math.random()<0.5){
+                                    float hn = tlocation.getBlock().getType().getHardness();
+                                    if(hn>-1&&Math.random()<10.0/hn){
+                                        tlocation.getBlock().setType(Material.FIRE);
+                                    }
+                                }
+                                if(Math.random()<0.01){
+                                    tlocation.createExplosion(domain.owner.user,7,PaperJJK.rule_breakblock,PaperJJK.rule_breakblock);
                                 }
                             }
+
+
+                            shellBlockIndex_special++;
+                            blocksProcessed++;
+                        }
+
+                        // Check if current shell is complete
+                        if (shellBlockIndex_special >= shellBlockList_special.size()) {
+                            domain.current_radius++;
+                            shellBlockList_special = null;  // Force regeneration for next radius
+
+                            // === TODO: DAMAGE ENTITIES WHEN SHELL COMPLETES ===
+                            // Original logic: damage all entities in radius when shell completes
+                            //
+                            // Placeholder for user to implement:
+                            ArrayList<LivingEntity> tentities = (ArrayList<LivingEntity>) domain.nb_location.getNearbyLivingEntities(domain.current_radius);
+                            tentities.remove(domain.owner.user);
+                            tentities.removeAll(domain.fuga_hit);
+                            for(LivingEntity tentity : tentities){
+                                if(tentity.getLocation().distance(domain.nb_location)>domain.current_radius) continue;
+                                if(domain.onground && tentity.getLocation().getY()<domain.nb_location.getY()-5) continue;
+                                domain.fuga_hit.add(tentity);
+                                tentity.setFireTicks(4444);
+                                domain.owner.damaget(tentity,'j',domain.nb_range*4,false,"fuga",false);
+                            }
+
+                            if (domain.current_radius >= domain.nb_range) {
+                                domain.special = false;
+                                domain.current_radius = domain.nb_range;
+                                domain.undrow_expand();
+                                break;
+                            }
+
+                            if (domain.current_radius % 4 == 0) {
+                                break;  // Break inner loop, continue to next tick
+                            }
+                        } else {
+                            // Current shell not complete, stop processing more shells this tick
+                            break;
                         }
                     }
                 }
@@ -224,7 +272,7 @@ class Mizushi_effector extends Jdomain_effector{
                         //PaperJJK.log("running");
 
                         // === PROCESS UP TO 3 SHELLS PER TICK ===
-                        for (int shellCount = 0; shellCount < 3; shellCount++) {
+                        for (int shellCount = 0; shellCount < 6; shellCount++) {
                             // Stop if reached max radius
                             if (domain.current_radius >= domain.nb_range) {
                                 break;
@@ -239,7 +287,8 @@ class Mizushi_effector extends Jdomain_effector{
 
                             // Process all blocks in current shell (or up to 'speed' limit)
                             int blocksProcessed = 0;
-                            while (blocksProcessed < speed && shellBlockIndex < shellBlockList.size()) {
+                            while (blocksProcessed < 200000 && shellBlockIndex < shellBlockList.size()) {
+
                                 Vector offset = shellBlockList.get(shellBlockIndex);
 
                                 // Apply random offset (same as original code)
@@ -249,6 +298,8 @@ class Mizushi_effector extends Jdomain_effector{
 
                                 // If onground, clamp Y to prevent going too far underground
                                 if (domain.onground && y_offset < 1) {
+                                    shellBlockIndex++;
+                                    blocksProcessed++;
                                     continue;
                                 }
 
@@ -261,12 +312,12 @@ class Mizushi_effector extends Jdomain_effector{
                                         tlocation.getBlock().setType(Material.AIR);
                                     }
                                     else if(!tlocation.getBlock().isEmpty()){
-                                        if(tlocation.getBlock().getType().getHardness()<4){
+                                        if(tlocation.getBlock().getType().getHardness()<=1){
                                             if(tlocation.getBlock().getType().getHardness()>-1){
                                                 tlocation.getBlock().setType(Material.AIR);
                                             }
                                         }
-                                        else if(Math.random()<=0.1/tlocation.getBlock().getType().getHardness()){
+                                        else if(Math.random()<=Math.pow(1/tlocation.getBlock().getType().getHardness(),0.3)){
                                             tlocation.getBlock().setType(Material.AIR);
                                         }
                                     }
@@ -297,7 +348,7 @@ class Mizushi_effector extends Jdomain_effector{
                         // Send SYNC packet every tick (same as original)
                         domain.sendDomainSyncPacket();
                     }
-                    for(int r=0; r<30+Math.pow(domain.current_radius,2.3)/50; r++){
+                    for(int r=0; r<30+Math.pow(domain.current_radius,2.3)/10; r++){
                         Vector r_vector = new Vector(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
                         Vector l_vector = new Vector(Math.random()-0.5,domain.onground?(Math.random()/2):(Math.random()-0.5),Math.random()-0.5).normalize().multiply(Math.pow(Math.random(),0.35)*domain.current_radius);
                         Location ss_location = domain.nb_location.clone().add(l_vector);
@@ -309,21 +360,16 @@ class Mizushi_effector extends Jdomain_effector{
                                     s_location.getBlock().setType(Material.AIR);
                                 }
                                 else if(!s_location.getBlock().isEmpty()){
-                                    if(s_location.getBlock().getType().getHardness()<5){
-                                        if(s_location.getBlock().getType().getHardness()>-1){
-                                            s_location.getBlock().setType(Material.AIR);
-                                        }
-                                    }
-                                    else if(Math.random()<=1/s_location.getBlock().getType().getHardness()){
+                                    float hn = s_location.getBlock().getType().getHardness();
+                                    if(hn>-1&&Math.random()<10.0/hn){
                                         s_location.getBlock().setType(Material.AIR);
                                     }
                                 }
                             }
-
                             s_location.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, s_location, 1, 0, 0, 0, 0, null, false);
                             s_location.getWorld().spawnParticle(Particle.DUST, s_location, 1, 0, 0, 0, 0, dark_dust2, false);
                         }
-                        if(Math.random()>0.8){
+                        if(Math.random()>0.95){
                             ss_location.getWorld().playSound(ss_location, Sound.ITEM_TRIDENT_THROW, SoundCategory.PLAYERS, 0.2F, 0.2F);
                             ss_location.getWorld().playSound(ss_location, Sound.ITEM_TRIDENT_RIPTIDE_3, SoundCategory.PLAYERS, 0.5F, 0.7F);
                         }
