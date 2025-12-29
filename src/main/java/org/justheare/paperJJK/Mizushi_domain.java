@@ -145,6 +145,9 @@ class Mizushi_effector extends Jdomain_effector{
     double tick1=0;
     double tick2=0;
     double rx,ry,rz;
+    // Sphere surface cache variables
+    java.util.List<Vector> shellBlockList = null;  // Current shell's block offsets
+    int shellBlockIndex = 0;  // Progress through current shell
     boolean startPacketSent = false;
     Particle.DustOptions dark_dust2=new Particle.DustOptions(Color.fromRGB(60,0,0), 1F);
     public void effect_tick(){
@@ -163,7 +166,7 @@ class Mizushi_effector extends Jdomain_effector{
                         ry = Math.cos(tick2 / domain.current_radius / 4 * Math.PI) * domain.current_radius;
                         rz = Math.cos(tick1 / domain.current_radius / 4 * Math.PI) * Math.sin(tick2 / domain.current_radius / 4 * Math.PI) * domain.current_radius;
                         if(domain.onground&&rx<0){
-                            rx=-rx;
+                            continue;
                         }
                         Location tlocation = domain.nb_location.clone().add(ry, rx-4-Math.random(), rz);
                         if(tlocation.getBlock().isEmpty()){
@@ -219,58 +222,79 @@ class Mizushi_effector extends Jdomain_effector{
                 else{
                     if(domain.current_radius < domain.nb_range){
                         //PaperJJK.log("running");
-                        for (int r = 0; r < speed; r++) {
-                            rx = Math.sin(tick1 / domain.current_radius / 4 * Math.PI) * Math.sin(tick2 / domain.current_radius / 4 * Math.PI) * domain.current_radius+(Math.random()-0.5);
-                            ry = Math.cos(tick2 / domain.current_radius / 4 * Math.PI) * domain.current_radius+(Math.random()-0.5);
-                            rz = Math.cos(tick1 / domain.current_radius / 4 * Math.PI) * Math.sin(tick2 / domain.current_radius / 4 * Math.PI) * domain.current_radius+(Math.random()-0.5);
-                            if(domain.onground&&rx<1){
-                                rx=1;
+
+                        // === PROCESS UP TO 3 SHELLS PER TICK ===
+                        for (int shellCount = 0; shellCount < 3; shellCount++) {
+                            // Stop if reached max radius
+                            if (domain.current_radius >= domain.nb_range) {
+                                break;
                             }
-                            Location tlocation = domain.nb_location.clone().add(ry, rx-4, rz);
-                            if(PaperJJK.rule_breakblock){
-                                if(tlocation.getBlock().isLiquid()){
-                                    tlocation.getBlock().setType(Material.AIR);
+
+                            // Initialize shell block list if needed (new radius or first time)
+                            if (shellBlockList == null || shellBlockIndex >= shellBlockList.size()) {
+                                java.util.Set<Vector> offsets = PaperJJK.getSphereSurfaceOffsets(domain.current_radius);
+                                shellBlockList = new java.util.ArrayList<>(offsets);
+                                shellBlockIndex = 0;
+                            }
+
+                            // Process all blocks in current shell (or up to 'speed' limit)
+                            int blocksProcessed = 0;
+                            while (blocksProcessed < speed && shellBlockIndex < shellBlockList.size()) {
+                                Vector offset = shellBlockList.get(shellBlockIndex);
+
+                                // Apply random offset (same as original code)
+                                double y_offset = offset.getY();
+                                double x_offset = offset.getX();
+                                double z_offset = offset.getZ();
+
+                                // If onground, clamp Y to prevent going too far underground
+                                if (domain.onground && y_offset < 1) {
+                                    continue;
                                 }
-                                else if(!tlocation.getBlock().isEmpty()){
-                                    if(tlocation.getBlock().getType().getHardness()<4){
-                                        if(tlocation.getBlock().getType().getHardness()>-1){
+
+                                // Get block location (original: add(ry, rx-4, rz))
+                                Location tlocation = domain.nb_location.clone().add(x_offset, y_offset - 4, z_offset);
+
+                                // === BLOCK BREAKING LOGIC (230~244) - UNCHANGED ===
+                                if(PaperJJK.rule_breakblock){
+                                    if(tlocation.getBlock().isLiquid()){
+                                        tlocation.getBlock().setType(Material.AIR);
+                                    }
+                                    else if(!tlocation.getBlock().isEmpty()){
+                                        if(tlocation.getBlock().getType().getHardness()<4){
+                                            if(tlocation.getBlock().getType().getHardness()>-1){
+                                                tlocation.getBlock().setType(Material.AIR);
+                                            }
+                                        }
+                                        else if(Math.random()<=0.1/tlocation.getBlock().getType().getHardness()){
                                             tlocation.getBlock().setType(Material.AIR);
                                         }
                                     }
-                                    else if(Math.random()<=0.1/tlocation.getBlock().getType().getHardness()){
-                                        tlocation.getBlock().setType(Material.AIR);
-                                    }
                                 }
-                            }
-                            // Particle rendering replaced by client-side BufferBuilder sphere
-                            // Old particle code (lines 147-150):
-                            /*
-                            if(tlocation.getBlock().isPassable()&&Math.random()>Math.pow(domain.current_radius*1.0/200.0,0.01)){
-                                Particle.DustOptions dust=new Particle.DustOptions(Color.WHITE, (float) (200 - domain.current_radius) /50);
-                                tlocation.getWorld().spawnParticle(Particle.DUST, tlocation, 1, 0, 0, 0, 1, dust, true);
-                            }
-                            */
-                            tick1+=0.7;
-                            if (tick1 >= ((domain.onground)?(domain.current_radius * 4):(domain.current_radius*8))) {
-                                tick1 = 0;
-                                tick2+=0.7;
-                                if (tick2 >= ((domain.onground)?(domain.current_radius * 4):(domain.current_radius*8))) {
-                                    domain.current_radius++;
-                                    tick1=0;
-                                    tick2=0;
-
-                                    // Send SYNC packet every 3 seconds
-
-
-                                    if(domain.current_radius%4==0){
-                                        break;
-                                    }
-                                    if (domain.current_radius >= domain.nb_range) {
-                                        break;
-                                    }
+                                // Particle rendering replaced by client-side BufferBuilder sphere
+                                // Old particle code (lines 147-150):
+                                /*
+                                if(tlocation.getBlock().isPassable()&&Math.random()>Math.pow(domain.current_radius*1.0/200.0,0.01)){
+                                    Particle.DustOptions dust=new Particle.DustOptions(Color.WHITE, (float) (200 - domain.current_radius) /50);
+                                    tlocation.getWorld().spawnParticle(Particle.DUST, tlocation, 1, 0, 0, 0, 1, dust, true);
                                 }
+                                */
+
+                                shellBlockIndex++;
+                                blocksProcessed++;
+                            }
+
+                            // Check if current shell is complete
+                            if (shellBlockIndex >= shellBlockList.size()) {
+                                domain.current_radius++;
+                                shellBlockList = null;  // Force regeneration for next radius
+                            } else {
+                                // Current shell not complete, stop processing more shells this tick
+                                break;
                             }
                         }
+
+                        // Send SYNC packet every tick (same as original)
                         domain.sendDomainSyncPacket();
                     }
                     for(int r=0; r<30+Math.pow(domain.current_radius,2.3)/50; r++){
@@ -304,7 +328,7 @@ class Mizushi_effector extends Jdomain_effector{
                             ss_location.getWorld().playSound(ss_location, Sound.ITEM_TRIDENT_RIPTIDE_3, SoundCategory.PLAYERS, 0.5F, 0.7F);
                         }
                     }
-                    if(tick%10==0){
+                    if(tick%5==0){
                         ArrayList<Entity> tentities = (ArrayList<Entity>) domain.nb_location.getNearbyEntities(domain.nb_range,domain.nb_range,domain.nb_range);
                         for(Entity living : tentities){
                             if(living.equals(domain.owner.user)){
