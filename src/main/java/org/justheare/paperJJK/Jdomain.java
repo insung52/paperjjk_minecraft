@@ -6,7 +6,7 @@ public class Jdomain {
     Location location;
     Jobject owner;
     int range=30;
-    int level=0;
+    public int level=0;
     Jdomain_Builder originbuilder;
     boolean isbuilt=false;
     boolean isbuilding=false;

@@ -68,6 +68,9 @@ public final class PaperJJK extends JavaPlugin {
         JDomainData.init(getDataFolder());
         JData.loadAllData();
 
+        // 스킬 설명 시스템 초기화
+        org.justheare.paperJJK.network.SkillDescriptionManager.init(getDataFolder());
+
         initEvents();
 
         Bukkit.getScheduler().scheduleSyncRepeatingTask(jjkplugin,new manage(),1,1);

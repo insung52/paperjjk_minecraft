@@ -479,4 +479,69 @@ public class JPacketSender {
             e.printStackTrace();
         }
     }
+
+    /**
+     * PLAYER_INFO_RESPONSE (0x1A) - Send player info to client
+     * Packet format: [packetId(1)] [naturaltech(UTF)] [curseenergy(int)] [maxCE(int)]
+     *                [hasRCT(boolean)] [domainLevel(int)]
+     *                [slot1(UTF)] [slot2(UTF)] [slot3(UTF)] [slot4(UTF)]
+     */
+    public static void sendPlayerInfoResponse(Player player, org.justheare.paperJJK.Jplayer jplayer) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.PLAYER_INFO_RESPONSE);
+
+            // Basic info
+            out.writeUTF(jplayer.naturaltech != null ? jplayer.naturaltech : "");
+            out.writeInt((int) jplayer.curseenergy);
+            out.writeInt((int) jplayer.max_curseenergy);
+            out.writeBoolean(jplayer.reversecurse);
+            out.writeInt(jplayer.innate_domain != null ? jplayer.innate_domain.level : 0);
+
+            // Skill slots
+            out.writeUTF(jplayer.slot1Skill != null ? jplayer.slot1Skill : "");
+            out.writeUTF(jplayer.slot2Skill != null ? jplayer.slot2Skill : "");
+            out.writeUTF(jplayer.slot3Skill != null ? jplayer.slot3Skill : "");
+            out.writeUTF(jplayer.slot4Skill != null ? jplayer.slot4Skill : "");
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.info(String.format("[Packet Send] PLAYER_INFO_RESPONSE → %s: %s, CE=%d/%d",
+                    player.getName(), jplayer.naturaltech, (int)jplayer.curseenergy, (int)jplayer.max_curseenergy));
+        } catch (Exception e) {
+            logger.severe(String.format("PLAYER_INFO_RESPONSE packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * SKILL_INFO_RESPONSE (0x1B) - Send skill description to client
+     * Packet format: [packetId(1)] [skillId(UTF)] [displayName(UTF)] [description(UTF)]
+     *                [requiredCE(int)] [cooldown(int)] [type(UTF)]
+     */
+    public static void sendSkillInfoResponse(Player player, SkillDescriptionManager.SkillInfo skillInfo) {
+        try {
+            ByteArrayDataOutput out = ByteStreams.newDataOutput();
+            out.writeByte(PacketIds.SKILL_INFO_RESPONSE);
+
+            out.writeUTF(skillInfo.skillId);
+            out.writeUTF(skillInfo.displayName);
+            out.writeUTF(skillInfo.description);
+            out.writeInt(skillInfo.requiredCE);
+            out.writeInt(skillInfo.cooldown);
+            out.writeUTF(skillInfo.type);
+
+            player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
+                    CHANNEL, out.toByteArray());
+
+            logger.info(String.format("[Packet Send] SKILL_INFO_RESPONSE → %s: %s (%s)",
+                    player.getName(), skillInfo.skillId, skillInfo.displayName));
+        } catch (Exception e) {
+            logger.severe(String.format("SKILL_INFO_RESPONSE packet send failed (%s): %s",
+                    player.getName(), e.getMessage()));
+            e.printStackTrace();
+        }
+    }
 }

@@ -56,6 +56,10 @@ public class JPacketHandler implements PluginMessageListener {
                 case PacketIds.SKILL_DISTANCE -> handleSkillDistance(player, in);
                 case PacketIds.DOMAIN_EXPANSION -> handleDomainExpansion(player, in);
                 case PacketIds.DOMAIN_SETTINGS -> handleDomainSettings(player, in);
+                case PacketIds.PLAYER_INFO_REQUEST -> handlePlayerInfoRequest(player, in);
+                case PacketIds.SKILL_INFO_REQUEST -> handleSkillInfoRequest(player, in);
+                case PacketIds.SKILL_BINDING_UPDATE -> handleSkillBindingUpdate(player, in);
+                case PacketIds.CLIENT_SETTINGS_UPDATE -> handleClientSettingsUpdate(player, in);
                 case PacketIds.HANDSHAKE -> handleHandshake(player, in);
                 default -> logger.warning(String.format("Unknown packet ID: 0x%02X (Player: %s)",
                         packetId, player.getName()));
@@ -706,6 +710,95 @@ public class JPacketHandler implements PluginMessageListener {
         } catch (Exception e) {
             logger.warning(String.format("[Handshake] Failed to read version from %s", player.getName()));
         }
+    }
+
+    /**
+     * PLAYER_INFO_REQUEST (0x0B) - Request player info
+     * Packet format: [packetId(1)] [timestamp(8)]
+     */
+    private void handlePlayerInfoRequest(Player player, ByteArrayDataInput in) {
+        long timestamp = in.readLong();
+        Jplayer jplayer = getJplayer(player);
+
+        if (jplayer == null) {
+            logger.warning(String.format("[PlayerInfo] Jplayer not found: %s", player.getName()));
+            return;
+        }
+
+        logger.info(String.format("[PlayerInfo] Request from %s", player.getName()));
+
+        // Send response packet
+        JPacketSender.sendPlayerInfoResponse(player, jplayer);
+    }
+
+    /**
+     * SKILL_INFO_REQUEST (0x0C) - Request skill description
+     * Packet format: [packetId(1)] [skillId(UTF)] [timestamp(8)]
+     */
+    private void handleSkillInfoRequest(Player player, ByteArrayDataInput in) {
+        String skillId = in.readUTF();
+        long timestamp = in.readLong();
+
+        logger.info(String.format("[SkillInfo] Request from %s: %s", player.getName(), skillId));
+
+        SkillDescriptionManager.SkillInfo skillInfo = SkillDescriptionManager.getSkillInfo(skillId);
+
+        if (skillInfo == null) {
+            logger.warning(String.format("[SkillInfo] Skill not found: %s", skillId));
+            // Send empty response
+            skillInfo = new SkillDescriptionManager.SkillInfo(
+                skillId, "???", "설명을 찾을 수 없습니다.", 0, 0, "unknown"
+            );
+        }
+
+        // Send response packet
+        JPacketSender.sendSkillInfoResponse(player, skillInfo);
+    }
+
+    /**
+     * SKILL_BINDING_UPDATE (0x0D) - Update skill slot binding
+     * Packet format: [packetId(1)] [slot(1)] [skillId(UTF)] [timestamp(8)]
+     */
+    private void handleSkillBindingUpdate(Player player, ByteArrayDataInput in) {
+        byte slot = in.readByte();
+        String skillId = in.readUTF();
+        long timestamp = in.readLong();
+
+        Jplayer jplayer = getJplayer(player);
+        if (jplayer == null) {
+            logger.warning(String.format("[SkillBinding] Jplayer not found: %s", player.getName()));
+            return;
+        }
+
+        logger.info(String.format("[SkillBinding] Update from %s: slot %d = %s",
+            player.getName(), slot, skillId));
+
+        // Update skill slot
+        if (!jplayer.setSlotSkill(slot, skillId)) {
+            logger.warning(String.format("[SkillBinding] Failed to set slot %d to %s", slot, skillId));
+            return;
+        }
+
+        // Save to file
+        JData.saveJobject(jplayer);
+
+        logger.info(String.format("[SkillBinding] Successfully updated slot %d", slot));
+    }
+
+    /**
+     * CLIENT_SETTINGS_UPDATE (0x0E) - Update client settings
+     * Packet format: [packetId(1)] [postProcessing(1)] [domainEffects(1)] [timestamp(8)]
+     */
+    private void handleClientSettingsUpdate(Player player, ByteArrayDataInput in) {
+        boolean postProcessing = in.readBoolean();
+        boolean domainEffects = in.readBoolean();
+        long timestamp = in.readLong();
+
+        logger.info(String.format("[ClientSettings] Update from %s: postProcessing=%s, domainEffects=%s",
+            player.getName(), postProcessing, domainEffects));
+
+        // Client settings are stored client-side, no server action needed
+        // This handler exists for future server-side logic if needed
     }
 
     // ========== Skill Logic Handlers ==========

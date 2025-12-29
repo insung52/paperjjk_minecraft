@@ -15,36 +15,36 @@ import java.util.UUID;
 import static org.justheare.paperJJK.PaperJJK.*;
 
 public class Jobject {
-    boolean ish_depence=false;
-    Domain domain;
+    public boolean ish_depence=false;
+    public Domain domain;
     public Jdomain_innate innate_domain;
-    Player player;
-    double black_flash_num=0.01;
-    int black_flash_tick=0;
-    int max_curseenergy=200;
-    int curseenergy=1;
-    int max_cursecurrent=1;
-    int cursecurrent=0;
-    boolean reversecurse=false;
+    public Player player;
+    public double black_flash_num=0.01;
+    public int black_flash_tick=0;
+    public int max_curseenergy=200;
+    public int curseenergy=1;
+    public int max_cursecurrent=1;
+    public int cursecurrent=0;
+    public boolean reversecurse=false;
     public boolean is_reversecurse(){
         return reversecurse;
     }
-    boolean reversecursing=false;
+    public boolean reversecursing=false;
     public void set_reversecursing(boolean b){
         reversecursing=b;
     }
-    boolean reversecurse_out=false;
-    boolean reversecursing_out=false;
-    LivingEntity reversecursing_out_entity;
-    boolean cursespirit=false;
+    public boolean reversecurse_out=false;
+    public boolean reversecursing_out=false;
+    public LivingEntity reversecursing_out_entity;
+    public boolean cursespirit=false;
     public boolean blocked=true;
-    boolean can_air_surface=false;
+    public boolean can_air_surface=false;
     public Entity user;
-    UUID uuid;
+    public UUID uuid;
     public String naturaltech="";
     public ArrayList<Jujut> jujuts=new ArrayList<Jujut>();
-    Entity cursedentity;
-    int infinity_stun_tick=0;
+    public Entity cursedentity;
+    public int infinity_stun_tick=0;
     public void black_flash(){
         black_flash_tick--;
         if(black_flash_tick==0){
