@@ -348,7 +348,7 @@ class Mizushi_effector extends Jdomain_effector{
                         // Send SYNC packet every tick (same as original)
                         domain.sendDomainSyncPacket();
                     }
-                    for(int r=0; r<30+Math.pow(domain.current_radius,2.3)/10; r++){
+                    for(int r=0; r<30+Math.pow(domain.current_radius,2.3)/30; r++){
                         Vector r_vector = new Vector(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
                         Vector l_vector = new Vector(Math.random()-0.5,domain.onground?(Math.random()/2):(Math.random()-0.5),Math.random()-0.5).normalize().multiply(Math.pow(Math.random(),0.35)*domain.current_radius);
                         Location ss_location = domain.nb_location.clone().add(l_vector);
@@ -366,6 +366,7 @@ class Mizushi_effector extends Jdomain_effector{
                                     }
                                 }
                             }
+
                             s_location.getWorld().spawnParticle(Particle.ELECTRIC_SPARK, s_location, 1, 0, 0, 0, 0, null, false);
                             s_location.getWorld().spawnParticle(Particle.DUST, s_location, 1, 0, 0, 0, 0, dark_dust2, false);
                         }

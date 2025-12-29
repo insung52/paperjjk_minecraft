@@ -733,10 +733,10 @@ public class JPacketHandler implements PluginMessageListener {
 
     /**
      * SKILL_INFO_REQUEST (0x0C) - Request skill description
-     * Packet format: [packetId(1)] [skillId(UTF)] [timestamp(8)]
+     * Packet format: [packetId(1)] [skillId(VarInt+UTF8)] [timestamp(8)]
      */
     private void handleSkillInfoRequest(Player player, ByteArrayDataInput in) {
-        String skillId = in.readUTF();
+        String skillId = readMinecraftString(in);
         long timestamp = in.readLong();
 
         logger.info(String.format("[SkillInfo] Request from %s: %s", player.getName(), skillId));
@@ -747,7 +747,7 @@ public class JPacketHandler implements PluginMessageListener {
             logger.warning(String.format("[SkillInfo] Skill not found: %s", skillId));
             // Send empty response
             skillInfo = new SkillDescriptionManager.SkillInfo(
-                skillId, "???", "설명을 찾을 수 없습니다.", 0, 0, "unknown"
+                skillId, "???", "설명을 찾을 수 없습니다.",  "unknown"
             );
         }
 
@@ -757,11 +757,11 @@ public class JPacketHandler implements PluginMessageListener {
 
     /**
      * SKILL_BINDING_UPDATE (0x0D) - Update skill slot binding
-     * Packet format: [packetId(1)] [slot(1)] [skillId(UTF)] [timestamp(8)]
+     * Packet format: [packetId(1)] [slot(1)] [skillId(VarInt+UTF8)] [timestamp(8)]
      */
     private void handleSkillBindingUpdate(Player player, ByteArrayDataInput in) {
         byte slot = in.readByte();
-        String skillId = in.readUTF();
+        String skillId = readMinecraftString(in);
         long timestamp = in.readLong();
 
         Jplayer jplayer = getJplayer(player);
@@ -809,5 +809,45 @@ public class JPacketHandler implements PluginMessageListener {
 
     private void onRCTEnd(Player player, Jplayer jplayer) {
         jplayer.set_reversecursing(false);
+    }
+
+    // ========== Utility Methods ==========
+
+    /**
+     * Read VarInt from ByteArrayDataInput (Minecraft protocol format)
+     */
+    private int readVarInt(ByteArrayDataInput in) {
+        int value = 0;
+        int position = 0;
+        byte currentByte;
+
+        while (true) {
+            currentByte = in.readByte();
+            value |= (currentByte & 0x7F) << position;
+
+            if ((currentByte & 0x80) == 0) break;
+
+            position += 7;
+
+            if (position >= 32) {
+                throw new RuntimeException("VarInt is too big");
+            }
+        }
+
+        return value;
+    }
+
+    /**
+     * Read String from ByteArrayDataInput (Minecraft protocol format: VarInt length + UTF-8 bytes)
+     */
+    private String readMinecraftString(ByteArrayDataInput in) {
+        int length = readVarInt(in);
+        byte[] bytes = new byte[length];
+
+        for (int i = 0; i < length; i++) {
+            bytes[i] = in.readByte();
+        }
+
+        return new String(bytes, java.nio.charset.StandardCharsets.UTF_8);
     }
 }

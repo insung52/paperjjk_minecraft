@@ -504,6 +504,13 @@ public class JPacketSender {
             out.writeUTF(jplayer.slot3Skill != null ? jplayer.slot3Skill : "");
             out.writeUTF(jplayer.slot4Skill != null ? jplayer.slot4Skill : "");
 
+            // Available skills for this naturaltech
+            java.util.List<String> availableSkills = org.justheare.paperJJK.JujutFactory.getAvailableSkills(jplayer.naturaltech);
+            out.writeInt(availableSkills.size());
+            for (String skillId : availableSkills) {
+                out.writeUTF(skillId);
+            }
+
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
@@ -518,8 +525,7 @@ public class JPacketSender {
 
     /**
      * SKILL_INFO_RESPONSE (0x1B) - Send skill description to client
-     * Packet format: [packetId(1)] [skillId(UTF)] [displayName(UTF)] [description(UTF)]
-     *                [requiredCE(int)] [cooldown(int)] [type(UTF)]
+     * Packet format: [packetId(1)] [skillId(UTF)] [displayName(UTF)] [description(UTF)] [requiredCE(UTF)]
      */
     public static void sendSkillInfoResponse(Player player, SkillDescriptionManager.SkillInfo skillInfo) {
         try {
@@ -529,9 +535,7 @@ public class JPacketSender {
             out.writeUTF(skillInfo.skillId);
             out.writeUTF(skillInfo.displayName);
             out.writeUTF(skillInfo.description);
-            out.writeInt(skillInfo.requiredCE);
-            out.writeInt(skillInfo.cooldown);
-            out.writeUTF(skillInfo.type);
+            out.writeUTF(skillInfo.requiredCE);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
