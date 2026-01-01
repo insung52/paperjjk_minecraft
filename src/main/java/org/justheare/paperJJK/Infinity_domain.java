@@ -85,12 +85,12 @@ class Infinity_effector extends Jdomain_effector{
                             }
                             else {
                                 // AI Goal만 제거, 물리는 유지
-                                PaperJJK.disableMobAI(living);
+                                living.setAI(false);
                             }
                         }
                         else {
                             // AI Goal만 제거, 물리는 유지
-                            PaperJJK.disableMobAI(living);
+                            living.setAI(false);
                         }
                     }
                     tee.add(living);

@@ -129,12 +129,18 @@ public class JPacketHandler implements PluginMessageListener {
 
         switch (action) {
             case PacketIds.SkillAction.START -> {
+                // Check if player can use simple domain
+                if (!jplayer.can_simple_domain) {
+                    logger.warning(String.format("[Simple Domain] %s: Cannot use simple domain (can_simple_domain = false)", player.getName()));
+                    return;
+                }
+
                 logger.info(String.format("[Simple Domain START] %s: Charging started", player.getName()));
-                // TODO: Start simple domain charging logic
+                org.justheare.paperJJK.SimpleDomainManager.startCharging(player);
             }
             case PacketIds.SkillAction.END -> {
                 logger.info(String.format("[Simple Domain END] %s: Charging complete", player.getName()));
-                // TODO: Complete simple domain
+                org.justheare.paperJJK.SimpleDomainManager.endCharging(player);
             }
         }
     }

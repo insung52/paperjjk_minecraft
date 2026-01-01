@@ -91,6 +91,10 @@ public class JData {
         dataConfig.set(path + ".black_flash_num", jobject.black_flash_num);
         dataConfig.set(path + ".blocked", jobject.blocked);
 
+        // Simple Domain
+        dataConfig.set(path + ".can_simple_domain", jobject.can_simple_domain);
+        dataConfig.set(path + ".simple_domain_type", jobject.simple_domain_type);
+
         // Innate Domain 데이터
         if (jobject.innate_domain != null) {
             String domainPath = path + ".innate_domain";
@@ -194,10 +198,16 @@ public class JData {
         existingJobject.black_flash_num = dataConfig.getDouble(path + ".black_flash_num", 0.01);
         existingJobject.blocked = dataConfig.getBoolean(path + ".blocked", true);
 
+        // Simple Domain
+        existingJobject.can_simple_domain = dataConfig.getBoolean(path + ".can_simple_domain", false);
+        existingJobject.simple_domain_type = dataConfig.getBoolean(path + ".simple_domain_type", true);
+
         PaperJJK.log("[JData] Loaded basic data - naturaltech: " + existingJobject.naturaltech +
                      ", max_curseenergy: " + existingJobject.max_curseenergy +
                      ", blocked: " + existingJobject.blocked +
-                     ", can_air_surface: " + existingJobject.can_air_surface);
+                     ", can_air_surface: " + existingJobject.can_air_surface +
+                     ", can_simple_domain: " + existingJobject.can_simple_domain +
+                     ", simple_domain_type: " + existingJobject.simple_domain_type);
 
         // Skill slot configuration (for Jplayer only)
         if (existingJobject instanceof Jplayer jplayer) {

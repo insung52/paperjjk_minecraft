@@ -332,6 +332,10 @@ class manage implements Runnable{
     @Override
     public void run() {
         tick++;
+
+        // Tick simple domain power for all players
+        SimpleDomainManager.tick();
+
         if(tick%20==0){
             for(Jobject jobject : PaperJJK.jobjects){
                 if(jobject.user instanceof LivingEntity living){

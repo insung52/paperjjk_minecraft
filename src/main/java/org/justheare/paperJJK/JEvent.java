@@ -29,10 +29,9 @@ import java.util.UUID;
 
 import static org.justheare.paperJJK.PaperJJK.*;
 
-//평타 :
-//주술
-//환경 :
+
 public class JEvent implements Listener {
+    boolean damage_debug = false;
     // 상호작용 가능한 블록 목록
     private static final Set<Material> INTERACTABLE_BLOCKS = EnumSet.of(
             Material.CHEST, Material.TRAPPED_CHEST,   // 상자
@@ -67,8 +66,12 @@ public class JEvent implements Listener {
         Entity victim= event.getEntity();
         Jobject v_jobject= getjobject(victim);
         double damage=event.getDamage();
+        boolean cursed = victim.getScoreboardTags().contains("cursed");
+        String cause = event.getCause().toString();
+        if(damage_debug){
+            PaperJJK.log(String.format("[onEDE] %b, %f, %b, %s", (v_jobject==null), damage, cursed, cause));
+        }
         if(v_jobject!=null) {
-            //log("ede ccc");
             if(!victim.getScoreboardTags().contains("cursed")){
                 if(v_jobject.naturaltech.equals("mahoraga")){
                     if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.PROJECTILE)){
@@ -94,13 +97,11 @@ public class JEvent implements Listener {
                     }
                 }
             }
-
             if(!event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)){
                 //PaperJJK.log("curse");
                 if (v_jobject.naturaltech.equals("infinity")) {
                     for (Jujut jujut : v_jobject.jujuts) {
                         if (jujut instanceof Infinity_passive ip) {
-
                             event.setCancelled(true);
                             break;
                         }
@@ -140,6 +141,11 @@ public class JEvent implements Listener {
         Entity victim=event.getEntity();
         double damage=event.getDamage();
         Jobject v_jobject= getjobject(victim);
+        boolean cursed = victim.getScoreboardTags().contains("cursed");
+        String cause = event.getCause().toString();
+        if(damage_debug){
+            PaperJJK.log(String.format("[onEDBEE] %b, %f, %b, %s", (v_jobject==null), damage, cursed, cause));
+        }
         if(victim instanceof LivingEntity living){
             if(!    (event.getCause().equals(EntityDamageEvent.DamageCause.LIGHTNING) ||event.getCause().equals(EntityDamageEvent.DamageCause.LAVA) ||event.getCause().equals(EntityDamageEvent.DamageCause.FIRE)||event.getCause().equals(EntityDamageEvent.DamageCause.CONTACT)||event.getCause().equals(EntityDamageEvent.DamageCause.SUFFOCATION) )                ){
                 living.setMaximumNoDamageTicks(2);
@@ -175,7 +181,6 @@ public class JEvent implements Listener {
                 }
             }
         }
-
         if(v_jobject!=null){
             boolean c1 = victim.getScoreboardTags().contains("cursed");
 
@@ -239,13 +244,10 @@ public class JEvent implements Listener {
                     boolean bf = is_black_flash(attacker,victim);
                     if(bf){
                         damage=Math.pow(damage,1.5);
-                        event.setDamage(damage);
                     }
                 }
-                else {
-                    event.setDamage(Math.round(damage));
-                    v_jobject.curseenergy-=(v_jobject.max_cursecurrent-v_jobject.cursecurrent)*event.getDamage()/100;
-                }
+                event.setDamage(Math.round(damage));
+                v_jobject.curseenergy-=(v_jobject.max_cursecurrent-v_jobject.cursecurrent)*event.getDamage()/100;
                 if(attacker instanceof Player player&&!event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_EXPLOSION)) {
                     event.setCancelled(useing_jujut(player, true,victim));
                 }
@@ -474,6 +476,9 @@ public class JEvent implements Listener {
                     newJplayer.black_flash_num = oldData.black_flash_num;
                     newJplayer.blocked = oldData.blocked;
                     newJplayer.innate_domain = oldData.innate_domain;
+                    // Simple Domain
+                    newJplayer.can_simple_domain = oldData.can_simple_domain;
+                    newJplayer.simple_domain_type = oldData.simple_domain_type;
                     if(newJplayer.innate_domain != null){
                         newJplayer.innate_domain.owner = newJplayer;
                         PaperJJK.log("[JEvent] Transferred innate_domain - isbuilt: " + newJplayer.innate_domain.isbuilt +
@@ -517,6 +522,9 @@ public class JEvent implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         PaperJJK.log("[JEvent] Player " + player.getName() + " quit");
+
+        // Cleanup simple domain data
+        SimpleDomainManager.cleanup(player);
     }
 
     public boolean useing_jujut(Player player, boolean leftclick,Entity entity){

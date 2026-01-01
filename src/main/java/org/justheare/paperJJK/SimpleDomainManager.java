@@ -1,0 +1,221 @@
+package org.justheare.paperJJK;
+
+import org.bukkit.Bukkit;
+import org.bukkit.Location;
+import org.bukkit.Particle;
+import org.bukkit.entity.Player;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * Simple Domain (간이영역) Manager
+ *
+ * Manages simple domain charging and power for each player.
+ * - Charging: Power increases each tick (max 100%)
+ * - Not charging: Power decreases each tick (min 0%)
+ * - Active (≥1%): Player is immune to domain sure-hit effects
+ */
+public class SimpleDomainManager {
+    // Player UUID -> SimpleDomainData
+    private static final Map<UUID, SimpleDomainData> playerData = new HashMap<>();
+
+    // Configuration
+    private static final double CHARGE_RATE = 3.0;    // Power increase per tick when charging (1% per tick = 5 seconds to 100%)
+    private static final double BASE_DECAY_RATE = 0.5; // Base power decrease per tick when not charging (0.5% per tick = 10 seconds to 0%)
+    private static final double MAX_RADIUS = 7.0;    // Maximum circle radius at 100% power (blocks)
+
+    // Particle animation
+    private static double particleAngle = 0.0; // Current rotation angle for particle circle
+
+    /**
+     * Simple Domain data for a player
+     */
+    public static class SimpleDomainData {
+        public boolean charging = false;
+        public double power = 0.0; // 0-100%
+
+        public SimpleDomainData() {
+            this.charging = false;
+            this.power = 0.0;
+        }
+    }
+
+    /**
+     * Start charging simple domain for a player
+     */
+    public static void startCharging(Player player) {
+        SimpleDomainData data = getOrCreate(player);
+        data.charging = true;
+        PaperJJK.log(String.format("[Simple Domain] %s: Charging started", player.getName()));
+    }
+
+    /**
+     * Stop charging simple domain for a player
+     */
+    public static void endCharging(Player player) {
+        SimpleDomainData data = getOrCreate(player);
+        data.charging = false;
+        PaperJJK.log(String.format("[Simple Domain] %s: Charging stopped", player.getName()));
+    }
+
+    /**
+     * Tick all players' simple domain power
+     * Called every game tick (20 times per second)
+     */
+    public static void tick() {
+        for (Map.Entry<UUID, SimpleDomainData> entry : playerData.entrySet()) {
+            UUID uuid = entry.getKey();
+            SimpleDomainData data = entry.getValue();
+            double oldPower = data.power;
+
+            Player player = Bukkit.getPlayer(uuid);
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+
+            if (data.charging) {
+                // Stop charging if player stops sneaking
+                if (!player.isSneaking()) {
+                    data.charging = false;
+                } else {
+                    // Charging: Increase power
+                    data.power = Math.min(100.0, data.power + CHARGE_RATE);
+                    Jplayer jplayer = getJplayer(player);
+                    if(jplayer!=null){
+                        jplayer.curseenergy -= (int) (data.power/10);
+                        if(jplayer.curseenergy<=0){
+                            data.charging = false;
+                        }
+                    }
+
+                }
+            } else if (data.power > 0) {
+                // Not charging: Decrease power
+                // Base decay + additional decay from opponent's barrier technique level (TODO)
+                double decayRate = BASE_DECAY_RATE;
+
+                // TODO: Add additional decay based on opponent's barrier technique level
+                // Jdomain_expand nearbyDomain = findNearbyDomain(player);
+                // if (nearbyDomain != null) {
+                //     int barrierLevel = nearbyDomain.getBarrierTechniqueLevel();
+                //     decayRate += barrierLevel * 0.1; // +0.1% per level
+                // }
+
+                data.power = Math.max(0.0, data.power - decayRate);
+            }
+
+            // Log power changes
+            if (oldPower != data.power) {
+                //PaperJJK.log(String.format("[Simple Domain] %s: %.1f%% (charging: %b)",
+                //    player.getName(), data.power, data.charging));
+            }
+
+            // Show particle effects if active
+            if (data.power >= 1.0) {
+                showParticleEffect(player, data.power);
+
+            }
+        }
+    }
+
+    /**
+     * Get simple domain power for a player (0-100%)
+     */
+    public static double getPower(Player player) {
+        SimpleDomainData data = playerData.get(player.getUniqueId());
+        return data != null ? data.power : 0.0;
+    }
+
+    /**
+     * Check if simple domain is active (≥1%)
+     * Active simple domain blocks domain sure-hit effects
+     */
+    public static boolean isActive(Player player) {
+        return getPower(player) >= 1.0;
+    }
+
+    /**
+     * Check if player is currently charging
+     */
+    public static boolean isCharging(Player player) {
+        SimpleDomainData data = playerData.get(player.getUniqueId());
+        return data != null && data.charging;
+    }
+
+    /**
+     * Cleanup player data (called on disconnect)
+     */
+    public static void cleanup(Player player) {
+        playerData.remove(player.getUniqueId());
+        PaperJJK.log(String.format("[Simple Domain] %s: Data cleaned up", player.getName()));
+    }
+
+    /**
+     * Get or create simple domain data for a player
+     */
+    private static SimpleDomainData getOrCreate(Player player) {
+        return playerData.computeIfAbsent(player.getUniqueId(), k -> new SimpleDomainData());
+    }
+
+    /**
+     * Show particle effect for simple domain
+     * - Displays white firework particles in a rotating circle
+     * - Circle radius scales with power (0-100% → 0-10 blocks)
+     * - Circle is drawn at ground level (player's feet)
+     */
+    private static void showParticleEffect(Player player, double power) {
+        // Get Jplayer to check simple_domain_type
+        Jplayer jplayer = getJplayer(player);
+        if (jplayer == null || !jplayer.simple_domain_type) {
+            return;
+        }
+
+
+        // Calculate radius based on power (0-100% → 0-MAX_RADIUS blocks)
+        double radius = (power / 100.0) * MAX_RADIUS;
+
+        // Rotate angle for spinning effect
+        particleAngle += Math.PI / 24.0; // Rotate ~9 degrees per tick
+        if (particleAngle >= 2 * Math.PI) {
+            particleAngle -= 2 * Math.PI;
+        }
+
+        // Draw circle with white firework particles
+        Location center = player.getLocation();
+        int particleCount = 8; // More particles for larger circles (minimum 16)
+
+        for (int i = 0; i < particleCount; i++) {
+            double angle = particleAngle + (2 * Math.PI * i / particleCount);
+            double x = center.getX() + radius * Math.cos(angle);
+            double z = center.getZ() + radius * Math.sin(angle);
+            double y = center.getY() + 0.1; // Slightly above ground
+
+            Location particleLoc = new Location(center.getWorld(), x, y, z);
+
+            // Spawn white firework particle (no velocity, no offset)
+            center.getWorld().spawnParticle(
+                Particle.ELECTRIC_SPARK,
+                particleLoc,
+                1,    // count
+                0.1,  // offsetX
+                0.1,  // offsetY
+                0.1,  // offsetZ
+                0.1   // extra (speed)
+            );
+        }
+    }
+
+    /**
+     * Get Jplayer from Player
+     */
+    private static Jplayer getJplayer(Player player) {
+        for (Jobject obj : PaperJJK.jobjects) {
+            if (obj instanceof Jplayer jp && jp.user.getUniqueId().equals(player.getUniqueId())) {
+                return jp;
+            }
+        }
+        return null;
+    }
+}

@@ -18,6 +18,8 @@ public class Jobject {
     public boolean ish_depence=false;
     public Domain domain;
     public Jdomain_innate innate_domain;
+    public boolean can_simple_domain = false;
+    public boolean simple_domain_type = true;
     public Player player;
     public double black_flash_num=0.01;
     public int black_flash_tick=0;
@@ -155,6 +157,8 @@ public class Jobject {
         }
         if(naturaltech.isEmpty()){
             if (name.contains("infinity")) {
+                can_simple_domain = true;
+                simple_domain_type = true;
                 blocked = false;
                 max_curseenergy = mce;
                 max_cursecurrent = mcc;
@@ -167,6 +171,8 @@ public class Jobject {
                 jbasic();
             }
             else if (name.contains("mizushi")) {
+                can_simple_domain = true;
+                simple_domain_type = false;
                 domain=new Mizushi_domainp(this);
                 blocked = false;
                 max_curseenergy = mce;
