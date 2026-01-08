@@ -3,6 +3,8 @@ package org.justheare.paperJJK.network;
 import com.google.common.io.ByteArrayDataInput;
 import com.google.common.io.ByteArrayDataOutput;
 import com.google.common.io.ByteStreams;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -99,7 +101,14 @@ public class JPacketHandler implements PluginMessageListener {
             logger.warning(String.format("[RCT] Jplayer not found: %s", player.getName()));
             return;
         }
-
+        if (jplayer.infinity_stun_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[RCT] Infinity stuned: %d", jplayer.infinity_stun_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("Infinity stuned: %d sec", jplayer.infinity_stun_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
         switch (action) {
             case PacketIds.SkillAction.START -> {
                 logger.info(String.format("[RCT START] %s: Healing started", player.getName()));
@@ -124,6 +133,15 @@ public class JPacketHandler implements PluginMessageListener {
 
         if (jplayer == null) {
             logger.warning(String.format("[Simple Domain] Jplayer not found: %s", player.getName()));
+            return;
+        }
+
+        if (jplayer.infinity_stun_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Simple Domain] Infinity stuned: %d", jplayer.infinity_stun_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("Infinity stuned: %d sec", jplayer.infinity_stun_tick/20), NamedTextColor.RED)
+            );
             return;
         }
 
@@ -159,7 +177,22 @@ public class JPacketHandler implements PluginMessageListener {
             logger.warning(String.format("[Technique] Jplayer not found: %s", player.getName()));
             return;
         }
-
+        if (jplayer.infinity_stun_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Technique] Infinity stuned: %d", jplayer.infinity_stun_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("Infinity stuned: %d sec", jplayer.infinity_stun_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
+        if (jplayer.cursed_tech_block_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Technique] cursed tech burnt: %d", jplayer.cursed_tech_block_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("cursed tech burnt: %d sec", jplayer.cursed_tech_block_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
         String skillId = jplayer.getSlotSkill(slot);
         if (skillId == null) {
             logger.warning(String.format("[Technique] Invalid slot: %d (Player: %s)", slot, player.getName()));
@@ -301,7 +334,22 @@ public class JPacketHandler implements PluginMessageListener {
             logger.warning(String.format("[Reverse Technique] Jplayer not found: %s", player.getName()));
             return;
         }
-
+        if (jplayer.infinity_stun_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Reverse Technique] Infinity stuned: %d", jplayer.infinity_stun_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("Infinity stuned: %d sec", jplayer.infinity_stun_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
+        if (jplayer.cursed_tech_block_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Reverse Technique] cursed tech burnt: %d", jplayer.cursed_tech_block_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("cursed tech burnt: %d sec", jplayer.cursed_tech_block_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
         // Get the base skill and find its reverse
         String baseSkillId = jplayer.getSlotSkill(slot);
         if (baseSkillId == null) {
@@ -418,7 +466,22 @@ public class JPacketHandler implements PluginMessageListener {
             logger.warning(String.format("[Skill Control] Jplayer not found: %s", player.getName()));
             return;
         }
-
+        if (jplayer.infinity_stun_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Skill Control] Infinity stuned: %d", jplayer.infinity_stun_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("Infinity stuned: %d sec", jplayer.infinity_stun_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
+        if (jplayer.cursed_tech_block_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Skill Control] cursed tech burnt: %d", jplayer.cursed_tech_block_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("cursed tech burnt: %d sec", jplayer.cursed_tech_block_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
         String skillId = jplayer.getSlotSkill(slot);
         if (skillId == null) {
             logger.warning(String.format("[Skill Control] Invalid slot: %d (Player: %s)", slot, player.getName()));
@@ -484,7 +547,22 @@ public class JPacketHandler implements PluginMessageListener {
             logger.warning(String.format("[Skill Distance] Jplayer not found: %s", player.getName()));
             return;
         }
-
+        if (jplayer.infinity_stun_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Skill Distance] Infinity stuned: %d", jplayer.infinity_stun_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("Infinity stuned: %d sec", jplayer.infinity_stun_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
+        if (jplayer.cursed_tech_block_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Skill Distance] cursed tech burnt: %d", jplayer.cursed_tech_block_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("cursed tech burnt: %d sec", jplayer.cursed_tech_block_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
         String skillId = jplayer.getSlotSkill(slot);
         if (skillId == null) {
             logger.warning(String.format("[Skill Distance] Invalid slot: %d (Player: %s)", slot, player.getName()));
@@ -557,7 +635,22 @@ public class JPacketHandler implements PluginMessageListener {
             logger.warning(String.format("[Domain Expansion] Jplayer not found: %s", player.getName()));
             return;
         }
-
+        if (jplayer.infinity_stun_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Reverse Technique] Infinity stuned: %d", jplayer.infinity_stun_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("Infinity stuned: %d sec", jplayer.infinity_stun_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
+        if (jplayer.cursed_tech_block_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[Reverse Technique] cursed tech burnt: %d", jplayer.cursed_tech_block_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("cursed tech burnt: %d sec", jplayer.cursed_tech_block_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
         boolean noBarrier = (flags & PacketIds.DomainFlags.NO_BARRIER) != 0;
 
         // New simplified logic:
@@ -602,26 +695,15 @@ public class JPacketHandler implements PluginMessageListener {
                 }
 
                 // Check if domain is expanded and destroy accordingly
-                if (jplayer.innate_domain.isexpanded) {
-                    if (jplayer.innate_domain.no_border_on) {
-                        // nb destroy - Undraw no-barrier domain
-                        boolean success = jplayer.innate_domain.undrow_expand();
-                        if (success) {
-                            player.sendMessage("§7결계가 없는 영역전개 해제");
-                            logger.info("[Domain] No-barrier domain destroyed");
-                        }
-                    } else {
-                        // ed destroy - Destroy normal domain
-                        boolean success = jplayer.innate_domain.destroy_expand();
-                        if (success) {
-                            player.sendMessage("§7영역전개 해제");
-                            logger.info("[Domain] Normal domain destroyed");
-                        }
-                    }
+
+                if (jplayer.innate_domain.no_border_on) {
+                    // nb destroy - Undraw no-barrier domain
+                    boolean success = jplayer.innate_domain.undrow_expand();
                 } else {
-                    player.sendMessage("§c영역이 전개되어 있지 않습니다!");
-                    logger.info(String.format("[Domain] %s tried to cancel domain but none is expanded", player.getName()));
+                    // ed destroy - Destroy normal domain
+                    boolean success = jplayer.innate_domain.destroy_expand();
                 }
+
             }
         }
     }
@@ -810,6 +892,14 @@ public class JPacketHandler implements PluginMessageListener {
     // ========== Skill Logic Handlers ==========
 
     private void onRCTStart(Player player, Jplayer jplayer) {
+        if (jplayer.infinity_stun_tick>0){
+            //player.sendMessage("");
+            logger.warning(String.format("[onRCTStart] Infinity stuned: %d", jplayer.infinity_stun_tick/20));
+            player.sendActionBar(
+                    Component.text(String.format("Infinity stuned: %d sec", jplayer.infinity_stun_tick/20), NamedTextColor.RED)
+            );
+            return;
+        }
         jplayer.set_reversecursing(true);
     }
 

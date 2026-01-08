@@ -19,12 +19,7 @@ import org.bukkit.util.Vector;
 import org.justheare.paperJJK.network.JPacketHandler;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 public final class PaperJJK extends JavaPlugin {
     static boolean rule_breakblock=true;
@@ -351,6 +346,15 @@ class manage implements Runnable{
             if(jobject.black_flash_tick>0){
                 jobject.black_flash();
             }
+            if(jobject.cursed_tech_block_tick>0){
+                jobject.cursed_tech_block_tick--;
+                if(jobject.user instanceof LivingEntity living){
+                    if(living.getHealth()<=0){
+                        jobject.infinity_stun_tick=0;
+                    }
+                }
+
+            }
             if(jobject.infinity_stun_tick>0){
                 jobject.infinity_stun_tick--;
                 if(jobject.user instanceof LivingEntity living){
@@ -359,7 +363,7 @@ class manage implements Runnable{
                     }
                 }
                 if(jobject.user instanceof Player player && (player.getGameMode().equals(GameMode.SURVIVAL)||player.getGameMode().equals(GameMode.ADVENTURE))){
-                    player.setVelocity(new Vector(0,-1,0));
+                    player.setVelocity(new Vector(0,-4,0));
                 }
             }
             else if(jobject instanceof Jplayer jplayer) {

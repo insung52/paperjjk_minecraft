@@ -23,7 +23,7 @@ public class Jobject {
     public Player player;
     public double black_flash_num=0.01;
     public int black_flash_tick=0;
-    public int max_curseenergy=200;
+    public int max_curseenergy=5;
     public int curseenergy=1;
     public int max_cursecurrent=1;
     public int cursecurrent=0;
@@ -46,7 +46,8 @@ public class Jobject {
     public String naturaltech="";
     public ArrayList<Jujut> jujuts=new ArrayList<Jujut>();
     public Entity cursedentity;
-    public int infinity_stun_tick=0;
+    public int infinity_stun_tick=0;    // 모든 행동 불가
+    public int cursed_tech_block_tick=0;    // 술식 사용 불가
     public void black_flash(){
         black_flash_tick--;
         if(black_flash_tick==0){
@@ -139,7 +140,7 @@ public class Jobject {
     }
     public void jbasic(){
         if(user instanceof LivingEntity living){
-            living.setMaxHealth(20+Math.pow(max_curseenergy,0.3));
+            living.setMaxHealth(20+Math.pow(max_curseenergy-5,0.3));
             user.sendMessage("health seted");
         }
     }

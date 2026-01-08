@@ -24,21 +24,21 @@ public class Infinity extends Jujut{
     public void disabled() {
         location.getWorld().playSound(location, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 3, 2);
 
-        // Send END packet when AO effect stops
-        if(aoEffectActive && user instanceof Player player) {
-            JPacketSender.sendInfinityAoEnd(player, uniqueId);
+        // Send END packet when AO effect stops - BROADCAST to all nearby players
+        if(aoEffectActive) {
+            JPacketSender.broadcastInfinityAoEnd(location, uniqueId, 10000.0);
             aoEffectActive = false;
         }
 
-        // Send END packet when AKA effect stops
-        if(akaEffectActive && user instanceof Player player) {
-            JPacketSender.sendInfinityAkaEnd(player, uniqueId);
+        // Send END packet when AKA effect stops - BROADCAST to all nearby players
+        if(akaEffectActive) {
+            JPacketSender.broadcastInfinityAkaEnd(location, uniqueId, 100000.0);
             akaEffectActive = false;
         }
 
-        // Send END packet when MURASAKI effect stops
-        if(murasakiEffectActive && user instanceof Player player) {
-            JPacketSender.sendInfinityMurasakiEnd(player, uniqueId);
+        // Send END packet when MURASAKI effect stops - BROADCAST to all nearby players
+        if(murasakiEffectActive) {
+            JPacketSender.broadcastInfinityMurasakiEnd(location, uniqueId, 100000.0);
             murasakiEffectActive = false;
         }
     }
@@ -70,38 +70,34 @@ public class Infinity extends Jujut{
             }
         }
         if(!reversecurse){
-            // Send START packet when AO begins (only once)
-            if(!aoEffectActive && user instanceof Player player) {
+            // Send START packet when AO begins (only once) - BROADCAST to all nearby players
+            if(!aoEffectActive) {
                 // Scale usepower (1-100) to strength (0.1-5.0)
                 float strength = (float) (0.1 * 0.049 + 0.051);  // Linear scale: 1->0.1, 100->5.0
-                JPacketSender.sendInfinityAoStart(player, location, strength, uniqueId);
+                JPacketSender.broadcastInfinityAoStart(location, strength, uniqueId, 1000.0);
                 aoEffectActive = true;
             }
-            // Send SYNC packet every 10 ticks (0.5 seconds)
+            // Send SYNC packet every 10 ticks (0.5 seconds) - BROADCAST
             if(soundtick%5==0){
                 use_power--;
-                // Send position/strength update to client
-                if(user instanceof Player player) {
-                    float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
-                    JPacketSender.sendInfinityAoSync(player, location, strength, uniqueId);
-                }
+                // Send position/strength update to all nearby clients
+                float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
+                JPacketSender.broadcastInfinityAoSync(location, strength, uniqueId, 1000.0);
             }
         }
         else {
-            // Send START packet when AKA begins (only once)
-            if(!akaEffectActive && user instanceof Player player) {
+            // Send START packet when AKA begins (only once) - BROADCAST to all nearby players
+            if(!akaEffectActive) {
                 // Scale usepower (1-100) to strength (0.1-5.0)
                 float strength = (float) (0.1 * 0.049 + 0.051);  // Linear scale: 1->0.1, 100->5.0
-                JPacketSender.sendInfinityAkaStart(player, location, strength, uniqueId);
+                JPacketSender.broadcastInfinityAkaStart(location, strength, uniqueId, 1000.0);
                 akaEffectActive = true;
             }
-            // Send SYNC packet every 10 ticks (0.5 seconds)
+            // Send SYNC packet every 10 ticks (0.5 seconds) - BROADCAST
             if(soundtick%5==0){
-                // Send position/strength update to client
-                if(user instanceof Player player) {
-                    float strength = (float) (use_power / 3.0 * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
-                    JPacketSender.sendInfinityAkaSync(player, location, strength, uniqueId);
-                }
+                // Send position/strength update to all nearby clients
+                float strength = (float) (use_power / 3.0 * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
+                JPacketSender.broadcastInfinityAkaSync(location, strength, uniqueId, 1000.0);
             }
         }
 
@@ -513,34 +509,32 @@ public class Infinity extends Jujut{
         if(target=='a'){
             if(murasaki){
                 if(unlimit_m){
-                    // Send START_EXPLODE packet when unlimit_m starts (only once)
-                    if(time>1&&!murasakiEffectActive && user instanceof Player player) {
+                    // Send START_EXPLODE packet when unlimit_m starts (only once) - BROADCAST
+                    if(time>1&&!murasakiEffectActive) {
                         float initialRadius = 0.1f;  // Small initial radius
-                        JPacketSender.sendInfinityMurasakiStartExplode(player, location, initialRadius, uniqueId);
+                        JPacketSender.broadcastInfinityMurasakiStartExplode(location, initialRadius, uniqueId, 1000.0);
                         murasakiEffectActive = true;
                     }
 
-                    // Send SYNC_RADIUS every tick to update expanding radius
-                    if(user instanceof Player player) {
-                        // Use me_cr (current radius from new explosion algorithm)
-                        float currentRadius = me_cr;  // Actual radius in blocks
-                        JPacketSender.sendInfinityMurasakiSyncRadius(player, currentRadius, uniqueId);
-                    }
+                    // Send SYNC_RADIUS every tick to update expanding radius - BROADCAST
+                    // Use me_cr (current radius from new explosion algorithm)
+                    float currentRadius = me_cr;  // Actual radius in blocks
+                    JPacketSender.broadcastInfinityMurasakiSyncRadius(location, currentRadius, uniqueId, 1000.0);
 
                     murasaki_explode();
                 }
                 else{
-                    // Normal murasaki - send START packet (only once)
-                    if(time>1&&!murasakiEffectActive && user instanceof Player player) {
+                    // Normal murasaki - send START packet (only once) - BROADCAST
+                    if(time>1&&!murasakiEffectActive) {
                         float strength = (float) (use_power * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
-                        JPacketSender.sendInfinityMurasakiStart(player, location, strength, uniqueId);
+                        JPacketSender.broadcastInfinityMurasakiStart(location, strength, uniqueId, 1000.0);
                         murasakiEffectActive = true;
                     }
 
-                    // Normal murasaki - send SYNC packet every 10 ticks (0.5 seconds)
-                    if(soundtick%4==0 && user instanceof Player player) {
+                    // Normal murasaki - send SYNC packet every 10 ticks (0.5 seconds) - BROADCAST
+                    if(soundtick%4==0) {
                         float strength = (float) (use_power / 2.0 * 0.049 + 0.051);  // Scale 1-100 to 0.1-5.0
-                        JPacketSender.sendInfinityMurasakiSync(player, location, strength, uniqueId);
+                        JPacketSender.broadcastInfinityMurasakiSync(location, strength, uniqueId, 1000.0);
                     }
 
                     if(time%2==0){
@@ -755,9 +749,9 @@ public class Infinity extends Jujut{
                 }
             }
 
-            // Check if use_power depleted - stop AO effect
-            if(use_power <= 0 && aoEffectActive && user instanceof Player player) {
-                JPacketSender.sendInfinityAoEnd(player, uniqueId);
+            // Check if use_power depleted - stop AO effect - BROADCAST
+            if(use_power <= 0 && aoEffectActive) {
+                JPacketSender.broadcastInfinityAoEnd(location, uniqueId, 10000.0);
                 aoEffectActive = false;
             }
         }

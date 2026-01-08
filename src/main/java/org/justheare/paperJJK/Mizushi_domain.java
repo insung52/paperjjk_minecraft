@@ -160,7 +160,6 @@ class Mizushi_effector extends Jdomain_effector{
                 domain.sendDomainStartPacket();
                 startPacketSent = true;
             }
-
             if(tick>20){
                 if(domain.special){
                     // === SPECIAL MODE (FUGA) - PROCESS UP TO 3 SHELLS PER TICK ===
@@ -348,7 +347,7 @@ class Mizushi_effector extends Jdomain_effector{
                         // Send SYNC packet every tick (same as original)
                         domain.sendDomainSyncPacket();
                     }
-                    for(int r=0; r<30+Math.pow(domain.current_radius,2.3)/30; r++){
+                    for(int r=0; r<30+Math.pow(domain.current_radius,2.3)/40; r++){
                         Vector r_vector = new Vector(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
                         Vector l_vector = new Vector(Math.random()-0.5,domain.onground?(Math.random()/2):(Math.random()-0.5),Math.random()-0.5).normalize().multiply(Math.pow(Math.random(),0.35)*domain.current_radius);
                         Location ss_location = domain.nb_location.clone().add(l_vector);
@@ -361,7 +360,7 @@ class Mizushi_effector extends Jdomain_effector{
                                 }
                                 else if(!s_location.getBlock().isEmpty()){
                                     float hn = s_location.getBlock().getType().getHardness();
-                                    if(hn>-1&&Math.random()<10.0/hn){
+                                    if(hn>-1&&Math.random()<1.0/hn){
                                         s_location.getBlock().setType(Material.AIR);
                                     }
                                 }
@@ -375,7 +374,7 @@ class Mizushi_effector extends Jdomain_effector{
                             ss_location.getWorld().playSound(ss_location, Sound.ITEM_TRIDENT_RIPTIDE_3, SoundCategory.PLAYERS, 0.5F, 0.7F);
                         }
                     }
-                    if(tick%5==0){
+                    if(tick%10==0){
                         ArrayList<Entity> tentities = (ArrayList<Entity>) domain.nb_location.getNearbyEntities(domain.nb_range,domain.nb_range,domain.nb_range);
                         for(Entity living : tentities){
                             if(living.equals(domain.owner.user)){
@@ -385,6 +384,12 @@ class Mizushi_effector extends Jdomain_effector{
                                 continue;
                             }
                             if(living.getLocation().distance(domain.nb_location)< domain.current_radius){
+                                Jobject jobject = PaperJJK.getjobject(living);
+                                if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
+                                    // Simple domain is active - ignore sure-hit effect
+                                    SimpleDomainManager.decreasePower(player, domain.level*4);
+                                    continue;
+                                }
                                 Mizushi mizushi = new Mizushi(domain.owner,"","",true,1, (int) (Math.random() * 7)+5,'a');
                                 mizushi.show=false;
                                 mizushi.sure_hit=true;
@@ -399,7 +404,6 @@ class Mizushi_effector extends Jdomain_effector{
                 }
             }
             else if(tick==1){
-
             }
             else if(tick==20){
                 domain.nb_location.getWorld().playSound(domain.nb_location,Sound.ENTITY_ENDER_DRAGON_AMBIENT, 80F, 0.5F);
@@ -408,8 +412,8 @@ class Mizushi_effector extends Jdomain_effector{
                 }
             }
         }
-        else if(domain.attacker==null){
 
+        else if(domain.attacker==null){
             if(tick%10==0){
                 ArrayList<LivingEntity> tentities = (ArrayList<LivingEntity>) domain.location.getNearbyLivingEntities(domain.range+1);
                 ArrayList<LivingEntity> tee=new ArrayList<>();
@@ -420,6 +424,13 @@ class Mizushi_effector extends Jdomain_effector{
                         }
                         else {
                             if(living instanceof BlockDisplay){
+                                continue;
+                            }
+                            Jobject jobject = PaperJJK.getjobject(living);
+                            if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
+                                // Simple domain is active - ignore sure-hit effect
+                                SimpleDomainManager.decreasePower(player, domain.level*4);
+                                tee.add(living);
                                 continue;
                             }
                             if(living.getLocation().distance(domain.location)< domain.range){

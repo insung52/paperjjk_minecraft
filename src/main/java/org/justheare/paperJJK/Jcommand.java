@@ -237,21 +237,27 @@ public class Jcommand implements TabExecutor {
                     }
                 }
                 else if(args[0].equals("reset")){
-                    Jobject jobject = PaperJJK.getjobject(player);
-                    jobject.naturaltech="";
-                    jobject.max_curseenergy=200;
-                    jobject.curseenergy=0;
-
+                    Jplayer newj = new Jplayer(player);
+                    int jj = PaperJJK.getjobject_num(player);
+                    jobjects.set(jj,newj);
                     // Reset slot configuration if Jplayer
-                    if(jobject instanceof Jplayer jplayer){
+                    if(newj instanceof Jplayer jplayer){
                         jplayer.slot1Skill = "";
                         jplayer.slot2Skill = "";
                         jplayer.slot3Skill = "";
                         jplayer.slot4Skill = "";
-                        player.sendMessage("§6스킬 슬롯도 초기화되었습니다.");
+                        player.sendMessage("§6스킬 슬롯 초기화");
                     }
-
                     player.sendMessage("cursed technic reseted");
+                    newj.jbasic();
+                }
+                else if(args[0].equals("cleanse")){
+                    Jobject jobject = PaperJJK.getjobject(player);
+                    jobject.cursed_tech_block_tick = 0;
+                    jobject.infinity_stun_tick = 0;
+                    player.removePotionEffect(PotionEffectType.DARKNESS);
+                    player.removePotionEffect(PotionEffectType.SLOWNESS);
+
                 }
                 else if(args[0].equals("set")){
                     if(args[1].equals("air")){
@@ -519,7 +525,7 @@ public class Jcommand implements TabExecutor {
     public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String label, @NotNull String[] args) {
         if(command.getName().equalsIgnoreCase("jjk")){
             if(args.length==1){
-                return Arrays.asList("refill","basic","reset","set","cw","ce","mahoraga","id","ed","nb","save","domaininfo","domainverify","rule","config","debug");
+                return Arrays.asList("refill","basic","reset","set","cw","ce","cleanse","mahoraga","id","ed","nb","save","domaininfo","domainverify","rule","config","debug");
             }
             else if(args.length==2){
                 if(args[0].equals("basic")){

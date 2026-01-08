@@ -108,7 +108,7 @@ public class JEvent implements Listener {
                     }
                 }
                 if (!event.isCancelled()) {
-                    if(v_jobject.max_cursecurrent>0){
+                    if(v_jobject.max_cursecurrent>0 && v_jobject.curseenergy>0){
                         damage -= damage * ((Math.pow(v_jobject.curseenergy, 0.15) * 5) / 100) * ((double) v_jobject.cursecurrent / v_jobject.max_cursecurrent);
                         event.setDamage(damage);
                         v_jobject.curseenergy -= (v_jobject.max_cursecurrent - v_jobject.cursecurrent) * event.getDamage() / 3;
@@ -183,8 +183,9 @@ public class JEvent implements Listener {
         }
         if(v_jobject!=null){
             boolean c1 = victim.getScoreboardTags().contains("cursed");
-
-            damage-=damage*((Math.pow(v_jobject.curseenergy,0.15)*4.5)/100)*((double) (v_jobject.max_cursecurrent-v_jobject.cursecurrent) /v_jobject.max_cursecurrent);
+            if(v_jobject.curseenergy>0){
+                damage-=damage*((Math.pow(v_jobject.curseenergy,0.15)*4.5)/100)*((double) (v_jobject.max_cursecurrent-v_jobject.cursecurrent) /v_jobject.max_cursecurrent);
+            }
             //log("edee ccc");
             if(!c1){
                 if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.PROJECTILE)){

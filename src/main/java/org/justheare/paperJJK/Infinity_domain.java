@@ -70,6 +70,13 @@ class Infinity_effector extends Jdomain_effector{
                         }
                         Jobject jobject = PaperJJK.getjobject(living);
                         if(jobject!=null){
+                            // Check if simple domain is active (blocks sure-hit effect)
+                            if(jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
+                                // Simple domain is active - ignore sure-hit effect
+                                SimpleDomainManager.decreasePower(player, domain.level);
+                                tee.add(living);
+                                continue;
+                            }
                             jobject.infinity_stun_tick+=10;
                             if(jobject.naturaltech.equals("mahoraga")&&jobject.jujuts.get(0) instanceof Mahoraga mahoraga){
                                 if(mahoraga.pre_adapt("infinity_domain","curse",1)<0){
@@ -78,7 +85,7 @@ class Infinity_effector extends Jdomain_effector{
                                     continue;
                                 }
                             }
-                            living.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,jobject.infinity_stun_tick,3));
+                            living.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,jobject.infinity_stun_tick,255));
                             living.addPotionEffect(new PotionEffect(PotionEffectType.BLINDNESS,jobject.infinity_stun_tick,1));
                             if(jobject.user instanceof Player player){
                                 player.setCooldown(Material.WRITTEN_BOOK,jobject.infinity_stun_tick);

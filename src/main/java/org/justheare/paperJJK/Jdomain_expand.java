@@ -4,8 +4,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.util.Vector;
 
@@ -31,6 +31,9 @@ public class Jdomain_expand extends Jdomain{
                 distance.normalize().multiply(to_range-2);
             }
             Location tl = to_location.clone().add(distance).setDirection(living.getLocation().getDirection());
+            if(living instanceof Player){
+                //PaperJJK.log(living.getLocation() + " -> " + tl);
+            }
             for(int r=0; r<to_range; r++){
                 if(tl.getBlock().isPassable()){
                     break;

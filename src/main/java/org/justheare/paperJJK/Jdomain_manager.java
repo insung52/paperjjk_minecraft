@@ -13,6 +13,7 @@ public class Jdomain_manager implements Runnable{
     int level_diff=0;
     int level_timeout=0;
     int tick=0;
+    boolean catch_destroyed = false;
     Jdomain_manager (Jdomain_expand expand){
         this.expand=expand;
     }
@@ -31,6 +32,7 @@ public class Jdomain_manager implements Runnable{
             else if(level_timeout<-20000){
                 expand.owner.user.sendMessage("your domain pushed out!");
                 expand.owner.innate_domain.destroy_expand();
+                catch_destroyed=true;
                 level_diff=0;
                 level_timeout=0;
             }
@@ -39,6 +41,7 @@ public class Jdomain_manager implements Runnable{
             if(living.getHealth()<living.getMaxHealth()*0.5){
                 living.sendMessage("too low health!");
                 expand.owner.innate_domain.destroy_expand();
+                catch_destroyed=true;
             }
 
         }
@@ -53,10 +56,11 @@ public class Jdomain_manager implements Runnable{
         //PaperJJK.log(break_count+" "+expand.range*5);
         if(break_count> expand.range*5){//50 : 3/10, 10 : 7/10
             expand.owner.user.sendMessage("border destroyed!");
+            catch_destroyed=true;
             expand.owner.innate_domain.destroy_expand();
         }
         tick++;
-        if(tick>=5){
+        if(!catch_destroyed&&tick>=5){
             tick=0;
             ArrayList<LivingEntity> tentities = (ArrayList<LivingEntity>) expand.location.getNearbyLivingEntities(expand.range);
             ArrayList<LivingEntity> tee=new ArrayList<>();
@@ -66,6 +70,7 @@ public class Jdomain_manager implements Runnable{
                 }
                 tee.add(living);
             }
+            //PaperJJK.log("manager translate");
             expand.translate(tee, expand.location,expand.range,expand.owner.innate_domain.location,expand.owner.innate_domain.range);
         }
     }

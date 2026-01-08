@@ -548,4 +548,127 @@ public class JPacketSender {
             e.printStackTrace();
         }
     }
+
+    // ========== Broadcast Methods (All Nearby Players) ==========
+
+    /**
+     * Broadcast INFINITY_AO START to all nearby players
+     */
+    public static void broadcastInfinityAoStart(Location position, float strength, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityAoStart(nearbyPlayer, position, strength, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_AO SYNC to all nearby players
+     */
+    public static void broadcastInfinityAoSync(Location position, float strength, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityAoSync(nearbyPlayer, position, strength, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_AO END to all nearby players
+     */
+    public static void broadcastInfinityAoEnd(Location position, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityAoEnd(nearbyPlayer, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_AKA START to all nearby players
+     */
+    public static void broadcastInfinityAkaStart(Location position, float strength, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityAkaStart(nearbyPlayer, position, strength, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_AKA SYNC to all nearby players
+     */
+    public static void broadcastInfinityAkaSync(Location position, float strength, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityAkaSync(nearbyPlayer, position, strength, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_AKA END to all nearby players
+     */
+    public static void broadcastInfinityAkaEnd(Location position, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityAkaEnd(nearbyPlayer, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_MURASAKI START to all nearby players
+     */
+    public static void broadcastInfinityMurasakiStart(Location position, float strength, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityMurasakiStart(nearbyPlayer, position, strength, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_MURASAKI SYNC to all nearby players
+     */
+    public static void broadcastInfinityMurasakiSync(Location position, float strength, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityMurasakiSync(nearbyPlayer, position, strength, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_MURASAKI START_EXPLODE to all nearby players
+     */
+    public static void broadcastInfinityMurasakiStartExplode(Location position, float initialRadius, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityMurasakiStartExplode(nearbyPlayer, position, initialRadius, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_MURASAKI SYNC_RADIUS to all nearby players
+     */
+    public static void broadcastInfinityMurasakiSyncRadius(Location position, float radius, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityMurasakiSyncRadius(nearbyPlayer, radius, uniqueId);
+            }
+        }
+    }
+
+    /**
+     * Broadcast INFINITY_MURASAKI END to all nearby players
+     */
+    public static void broadcastInfinityMurasakiEnd(Location position, String uniqueId, double range) {
+        for (org.bukkit.entity.Player nearbyPlayer : position.getWorld().getPlayers()) {
+            if (nearbyPlayer.getLocation().distance(position) <= range) {
+                sendInfinityMurasakiEnd(nearbyPlayer, uniqueId);
+            }
+        }
+    }
 }

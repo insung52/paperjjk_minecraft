@@ -22,7 +22,7 @@ public class SimpleDomainManager {
     private static final Map<UUID, SimpleDomainData> playerData = new HashMap<>();
 
     // Configuration
-    private static final double CHARGE_RATE = 3.0;    // Power increase per tick when charging (1% per tick = 5 seconds to 100%)
+    private static final double CHARGE_RATE = 10.0;    // Power increase per tick when charging (1% per tick = 5 seconds to 100%)
     private static final double BASE_DECAY_RATE = 0.5; // Base power decrease per tick when not charging (0.5% per tick = 10 seconds to 0%)
     private static final double MAX_RADIUS = 7.0;    // Maximum circle radius at 100% power (blocks)
 
@@ -93,16 +93,8 @@ public class SimpleDomainManager {
                 }
             } else if (data.power > 0) {
                 // Not charging: Decrease power
-                // Base decay + additional decay from opponent's barrier technique level (TODO)
+                // Base decay + additional decay from opponent's barrier technique level
                 double decayRate = BASE_DECAY_RATE;
-
-                // TODO: Add additional decay based on opponent's barrier technique level
-                // Jdomain_expand nearbyDomain = findNearbyDomain(player);
-                // if (nearbyDomain != null) {
-                //     int barrierLevel = nearbyDomain.getBarrierTechniqueLevel();
-                //     decayRate += barrierLevel * 0.1; // +0.1% per level
-                // }
-
                 data.power = Math.max(0.0, data.power - decayRate);
             }
 
@@ -135,7 +127,10 @@ public class SimpleDomainManager {
     public static boolean isActive(Player player) {
         return getPower(player) >= 1.0;
     }
-
+    public static void decreasePower(Player player, int level){
+        SimpleDomainData data = playerData.get(player.getUniqueId());
+        data.power = Math.max(0, data.power - (((double) level) / 7.0));
+    }
     /**
      * Check if player is currently charging
      */
@@ -168,42 +163,93 @@ public class SimpleDomainManager {
     private static void showParticleEffect(Player player, double power) {
         // Get Jplayer to check simple_domain_type
         Jplayer jplayer = getJplayer(player);
-        if (jplayer == null || !jplayer.simple_domain_type) {
+        if (jplayer == null) {
             return;
         }
 
+        if(jplayer.simple_domain_type) {
+            // Calculate radius based on power (0-100% → 0-MAX_RADIUS blocks)
+            double radius = (power / 100.0) * MAX_RADIUS;
 
-        // Calculate radius based on power (0-100% → 0-MAX_RADIUS blocks)
-        double radius = (power / 100.0) * MAX_RADIUS;
+            // Rotate angle for spinning effect
+            particleAngle += Math.PI / 24.0; // Rotate ~9 degrees per tick
+            if (particleAngle >= 2 * Math.PI) {
+                particleAngle -= 2 * Math.PI;
+            }
 
-        // Rotate angle for spinning effect
-        particleAngle += Math.PI / 24.0; // Rotate ~9 degrees per tick
-        if (particleAngle >= 2 * Math.PI) {
-            particleAngle -= 2 * Math.PI;
+            // Draw circle with white firework particles
+            Location center = player.getLocation();
+            int particleCount = 8; // More particles for larger circles (minimum 16)
+
+            for (int i = 0; i < particleCount; i++) {
+                double angle = particleAngle + (2 * Math.PI * i / particleCount);
+                double x = center.getX() + radius * Math.cos(angle);
+                double z = center.getZ() + radius * Math.sin(angle);
+                double y = center.getY() + 0.1; // Slightly above ground
+
+                Location particleLoc = new Location(center.getWorld(), x, y, z);
+
+                // Spawn white firework particle (no velocity, no offset)
+                center.getWorld().spawnParticle(
+                        Particle.ELECTRIC_SPARK,
+                        particleLoc,
+                        1,    // count
+                        0.1,  // offsetX
+                        0.1,  // offsetY
+                        0.1,  // offsetZ
+                        0.1   // extra (speed)
+                );
+            }
         }
+        else {
+            // 미허갈롱 타입 - 구형 보호막 파티클
+            // Calculate radius based on power (0-100% → 0-MAX_RADIUS blocks)
+            double radius = (power / 100.0) * MAX_RADIUS / 3;
 
-        // Draw circle with white firework particles
-        Location center = player.getLocation();
-        int particleCount = 8; // More particles for larger circles (minimum 16)
+            // Draw sphere with white particles
+            Location center = player.getLocation().add(0, 1, 0); // Center at player's chest height
 
-        for (int i = 0; i < particleCount; i++) {
-            double angle = particleAngle + (2 * Math.PI * i / particleCount);
-            double x = center.getX() + radius * Math.cos(angle);
-            double z = center.getZ() + radius * Math.sin(angle);
-            double y = center.getY() + 0.1; // Slightly above ground
+            // Use spherical coordinates to create uniform sphere
+            // Number of particles depends on radius (larger sphere = more particles)
+            int latitudes = Math.max(6, (int)(radius * 3)); // θ divisions
+            int longitudes = Math.max(8, (int)(radius * 4)); // φ divisions
 
-            Location particleLoc = new Location(center.getWorld(), x, y, z);
+            for (int lat = 0; lat < latitudes; lat++) {
+                // θ (theta) angle from 0 to π
+                double theta = Math.PI * lat / latitudes;
+                double sinTheta = Math.sin(theta);
+                double cosTheta = Math.cos(theta);
 
-            // Spawn white firework particle (no velocity, no offset)
-            center.getWorld().spawnParticle(
-                Particle.ELECTRIC_SPARK,
-                particleLoc,
-                1,    // count
-                0.1,  // offsetX
-                0.1,  // offsetY
-                0.1,  // offsetZ
-                0.1   // extra (speed)
-            );
+                for (int lon = 0; lon < longitudes; lon++) {
+                    // φ (phi) angle from 0 to 2π
+                    double phi = 2 * Math.PI * lon / longitudes;
+                    double sinPhi = Math.sin(phi);
+                    double cosPhi = Math.cos(phi);
+
+                    // Spherical to Cartesian conversion
+                    // x = r * sin(θ) * cos(φ)
+                    // y = r * cos(θ)
+                    // z = r * sin(θ) * sin(φ)
+                    double x = center.getX() + radius * sinTheta * cosPhi;
+                    double y = center.getY() + radius * cosTheta;
+                    double z = center.getZ() + radius * sinTheta * sinPhi;
+
+                    Location particleLoc = new Location(center.getWorld(), x, y, z);
+
+                    // Spawn particle (every other point to reduce lag)
+                    if ((lat + lon) % 2 == 0) {
+                        center.getWorld().spawnParticle(
+                            Particle.ELECTRIC_SPARK,
+                            particleLoc,
+                            1,
+                            0.1,
+                            0.1,
+                            0.1,
+                            0.0
+                        );
+                    }
+                }
+            }
         }
     }
 
@@ -214,6 +260,23 @@ public class SimpleDomainManager {
         for (Jobject obj : PaperJJK.jobjects) {
             if (obj instanceof Jplayer jp && jp.user.getUniqueId().equals(player.getUniqueId())) {
                 return jp;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Find nearby domain that the player is inside
+     * Returns the opponent's domain (not player's own domain)
+     */
+    private static Jdomain_expand findNearbyDomain(Player player) {
+        for (Jdomain_expand domain : PaperJJK.expanded_domains) {
+            // Skip if this is the player's own domain
+            if (domain.owner.user.equals(player)) {
+                continue;
+            }
+            if (domain.owner.innate_domain.domain_targets.contains(player)) {
+                return domain;
             }
         }
         return null;

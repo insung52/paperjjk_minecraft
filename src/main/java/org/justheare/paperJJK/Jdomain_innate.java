@@ -12,6 +12,7 @@ import org.bukkit.entity.LivingEntity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.bukkit.scheduler.BukkitRunnable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -53,6 +54,14 @@ public class Jdomain_innate extends Jdomain{
             owner.user.sendMessage("you don't have innate domain!");
             return false;
         }
+        if(owner.cursed_tech_block_tick>0){
+            owner.user.sendMessage("your cursed technic burnt");
+            return false;
+        }
+        if(owner.infinity_stun_tick>0){
+            owner.user.sendMessage("you can't do anything");
+            return false;
+        }
         owner.curseenergy-=30000;
         onground=false;
         owner.user.sendMessage("domain expansion...");
@@ -60,20 +69,6 @@ public class Jdomain_innate extends Jdomain{
         boolean close=false;
 
         for(Jdomain_expand expand : PaperJJK.expanded_domains){
-            if(expand.range+range>expand.location.distance(owner.user.getLocation())){
-                //attack
-                owner.user.sendMessage("you're now attacking other domain.");
-                attack_target=expand;
-
-                expand.owner.innate_domain.attacker=owner;
-                close=true;
-                expand.manager.level_diff=expand.owner.innate_domain.level-owner.innate_domain.level;
-
-                ArrayList<LivingEntity> aa= new ArrayList<>();
-                aa.add(owner.player);
-                expand.translate(aa,expand.location, expand.range, expand.owner.innate_domain.location,expand.owner.innate_domain.range);
-                break;
-            }
             if(expand.owner.innate_domain.domain_targets.contains(owner.user)){
                 owner.user.sendMessage("you're now attacking other domain.");
                 attack_target=expand;
@@ -82,6 +77,22 @@ public class Jdomain_innate extends Jdomain{
                 close=true;
                 expand.manager.level_diff=expand.owner.innate_domain.level-owner.innate_domain.level;
                 break;
+            }
+            if(expand.location.getWorld() == owner.user.getLocation().getWorld()){
+                if(expand.range+range>expand.location.distance(owner.user.getLocation())){
+                    //attack
+                    owner.user.sendMessage("you're now attacking other domain.");
+                    attack_target=expand;
+
+                    expand.owner.innate_domain.attacker=owner;
+                    close=true;
+                    expand.manager.level_diff=expand.owner.innate_domain.level-owner.innate_domain.level;
+
+                    ArrayList<LivingEntity> aa= new ArrayList<>();
+                    aa.add(owner.player);
+                    expand.translate(aa,expand.location, expand.range, expand.owner.innate_domain.location,expand.owner.innate_domain.range);
+                    break;
+                }
             }
         }
         if(!close){
@@ -107,8 +118,14 @@ public class Jdomain_innate extends Jdomain{
                     tee.add(living);
                 }
                 PaperJJK.expanded_domains.remove(expanded_domain);
-                expanded_domain.translate(tee,location,range+3,expanded_domain.location, expanded_domain.range);
                 expanded_domain.destroy();
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        expanded_domain.translate(tee,location,range+3,expanded_domain.location, expanded_domain.range);
+                    }
+                }.runTaskLater(PaperJJK.jjkplugin, 2L);
+
             }
             else if(!attacker.innate_domain.no_border_on){  //결있영에 공격받는중 이였다면 공격자로 이동
                 if(attacker.innate_domain.attack_target!=null){
@@ -155,10 +172,17 @@ public class Jdomain_innate extends Jdomain{
                     }
                     tee.add(living);
                 }
+                expanded_domain.destroy();
                 PaperJJK.expanded_domains.remove(expanded_domain);
                 attacker.innate_domain.attack_target=null;
-                expanded_domain.translate(tee,location,range+3,expanded_domain.location, expanded_domain.range);
-                expanded_domain.destroy();
+                //PaperJJK.log("destroy translate : "+location.getX() + " " + location.getY() + " "  + location.getZ() + " -> "+expanded_domain.location.getX() + " " + expanded_domain.location.getY() + " "  + expanded_domain.location.getZ());
+                new BukkitRunnable() {
+                    @Override
+                    public void run() {
+                        expanded_domain.translate(tee,location,range+3,expanded_domain.location, expanded_domain.range);
+                    }
+                }.runTaskLater(PaperJJK.jjkplugin, 2L);
+                attacker = null;
             }
         }
         else if(attack_target!=null){   //공격중이였다면 공격 해제
@@ -171,6 +195,7 @@ public class Jdomain_innate extends Jdomain{
         }
         owner.disablejujut();
         owner.player.setCooldown(Material.WRITTEN_BOOK,20*30);
+        owner.cursed_tech_block_tick = 20*30;
         return true;
     }
     public boolean drow_expand(int range){//결없영 전개
@@ -183,6 +208,14 @@ public class Jdomain_innate extends Jdomain{
             owner.user.sendMessage("already expanded domain!");
             return false;
         }
+        if(owner.cursed_tech_block_tick>0){
+            owner.user.sendMessage("your cursed technic burnt");
+            return false;
+        }
+        if(owner.infinity_stun_tick>0){
+            owner.user.sendMessage("you can't do anything");
+            return false;
+        }
         current_radius=0;
         no_border_on=true;
         isexpanded=true;
@@ -193,17 +226,19 @@ public class Jdomain_innate extends Jdomain{
         boolean close=false;
         nb_location=owner.user.getLocation();
         for(Jdomain_expand expand : PaperJJK.expanded_domains){
-            if(expand.range+nb_range>expand.location.distance(owner.user.getLocation())){
-                //attack
-                owner.user.sendMessage("you're now attacking other domain.");
-                attack_target=expand;
-                expand.owner.innate_domain.attacker=owner;
-                nb_location=expand.location;
-                ArrayList<LivingEntity> aa= new ArrayList<>();
-                aa.add(owner.player);
-                //expand.translate(aa,expand.location, expand.range, expand.owner.innate_domain.location,expand.owner.innate_domain.range);
-                close=true;
-                break;
+            if(expand.location.getWorld() == owner.user.getWorld()){
+                if(expand.range+nb_range>expand.location.distance(owner.user.getLocation())){
+                    //attack
+                    owner.user.sendMessage("you're now attacking other domain.");
+                    attack_target=expand;
+                    expand.owner.innate_domain.attacker=owner;
+                    nb_location=expand.location;
+                    ArrayList<LivingEntity> aa= new ArrayList<>();
+                    aa.add(owner.player);
+                    //expand.translate(aa,expand.location, expand.range, expand.owner.innate_domain.location,expand.owner.innate_domain.range);
+                    close=true;
+                    break;
+                }
             }
             if(expand.owner.innate_domain.domain_targets.contains(owner.user)){
                 owner.user.sendMessage("you're now attacking other domain.");
@@ -228,6 +263,7 @@ public class Jdomain_innate extends Jdomain{
             Bukkit.getScheduler().cancelTask(effector.tasknum);
             owner.disablejujut();
             owner.player.setCooldown(Material.WRITTEN_BOOK,20*30);
+            owner.cursed_tech_block_tick = 20*30;
             return true;
         }
         owner.user.sendMessage("no domain to destroy!");
@@ -440,12 +476,13 @@ class BlockPos {
 
 class Jdomain_effector implements Runnable{
     int tasknum;
+    int tick;
     Jdomain_innate domain;
     Jdomain_effector (Jdomain_innate domain){
         this.domain=domain;
         tick=0;
     }
-    int tick=0;
+
 
     public void effect_tick(){
         if(domain.no_border_on){
