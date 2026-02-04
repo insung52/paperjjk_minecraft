@@ -9,8 +9,6 @@ import org.bukkit.command.TabExecutor;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.potion.PotionEffect;
@@ -35,161 +33,50 @@ public class Jcommand implements TabExecutor {
                 }
                 else if(args[0].equals("basic")){
                     if(args[1].equals("infinity")){
-                        ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-                        BookMeta meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("nct_infinity");
-                            meta.setAuthor("ins");
-                            meta.addPage("50000000/10000/1/1/end");
-                            meta.setDisplayName("§5Infinity");
-                            book.setItemMeta(meta);
+                        // Check if custom values are provided
+                        if(args.length >= 6){
+                            try{
+                                int val1 = Integer.parseInt(args[2]);
+                                int val2 = Integer.parseInt(args[3]);
+                                int val3 = Integer.parseInt(args[4]);
+                                int val4 = Integer.parseInt(args[5]);
+                                PaperJJK.getjobject(player).setvalues("infinity", val1, val2, val3, val4);
+                                player.sendMessage(ChatColor.GREEN + "Infinity set with custom values: " + val1 + ", " + val2 + ", " + val3 + ", " + val4);
+                            } catch(NumberFormatException e){
+                                player.sendMessage(ChatColor.RED + "Invalid number format! Using default values.");
+                                PaperJJK.getjobject(player).setvalues("infinity",50000000,10000,1,0);
+                            }
+                        } else {
+                            // Use default values
+                            PaperJJK.getjobject(player).setvalues("infinity",50000000,10000,1,0);
+                            player.sendMessage(ChatColor.GREEN + "Infinity set with default values.");
                         }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("unct_infinity");
-                            meta.setAuthor("ins");
-                            meta.addPage("passive/5/999999/a/end");
-                            meta.setDisplayName("§fpassive");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("unct_infinity");
-                            meta.setAuthor("ins");
-                            meta.addPage("ao/10/999999/a/end");
-                            meta.setDisplayName("§9ao_10");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("unct_infinity");
-                            meta.setAuthor("ins");
-                            meta.addPage("ao/100/999999/a/end");
-                            meta.setDisplayName("§9§lao_100");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("domain_expand");
-                            meta.setAuthor("ins");
-                            meta.addPage("0/10/end");
-                            meta.setDisplayName("§0domain_10");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("domain_expand");
-                            meta.setAuthor("ins");
-                            meta.addPage("0/30/end");
-                            meta.setDisplayName("§0domain_30");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
                     }
                     else if(args[1].equals("mizushi")){
-                        ItemStack book = new ItemStack(Material.WRITTEN_BOOK);
-                        BookMeta meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("nct_mizushi");
-                            meta.setAuthor("ins");
-                            meta.addPage("400000000/20000/1/1/end");
-                            meta.setDisplayName("§5Mizushi");
-                            book.setItemMeta(meta);
+                        // Check if custom values are provided
+                        if(args.length >= 6){
+                            try{
+                                int val1 = Integer.parseInt(args[2]);
+                                int val2 = Integer.parseInt(args[3]);
+                                int val3 = Integer.parseInt(args[4]);
+                                int val4 = Integer.parseInt(args[5]);
+                                PaperJJK.getjobject(player).setvalues("mizushi", val1, val2, val3, val4);
+                                player.sendMessage(ChatColor.GREEN + "Mizushi set with custom values: " + val1 + ", " + val2 + ", " + val3 + ", " + val4);
+                            } catch(NumberFormatException e){
+                                player.sendMessage(ChatColor.RED + "Invalid number format! Using default values.");
+                                PaperJJK.getjobject(player).setvalues("mizushi",400000000,20000,1,1);
+                            }
+                        } else {
+                            // Use default values
+                            PaperJJK.getjobject(player).setvalues("mizushi",400000000,20000,1,1);
+                            player.sendMessage(ChatColor.GREEN + "Mizushi set with default values.");
                         }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("unct_mizushi");
-                            meta.setAuthor("ins");
-                            meta.addPage("kai/10/10/a/end");
-                            meta.setDisplayName("§ckai_10");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("unct_mizushi");
-                            meta.setAuthor("ins");
-                            meta.addPage("kai/100/10/a/end");
-                            meta.setDisplayName("§c§lkai_100");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("unct_mizushi");
-                            meta.setAuthor("ins");
-                            meta.addPage("fuga/100/40/a/end");
-                            meta.setDisplayName("§4fuga");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("domain_expand");
-                            meta.setAuthor("ins");
-                            meta.addPage("0/30/end");
-                            meta.setDisplayName("§0domain_30");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("domain_expand");
-                            meta.setAuthor("ins");
-                            meta.addPage("1/50/end");
-                            meta.setDisplayName("§8domain_50_nb");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("domain_expand");
-                            meta.setAuthor("ins");
-                            meta.addPage("1/100/end");
-                            meta.setDisplayName("§8domain_100_nb");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
-
-                        book = new ItemStack(Material.WRITTEN_BOOK);
-                        meta = (BookMeta) book.getItemMeta();
-                        if (meta != null) {
-                            meta.setTitle("domain_expand");
-                            meta.setAuthor("ins");
-                            meta.addPage("1/200/end");
-                            meta.setDisplayName("§8domain_200_nb");
-                            book.setItemMeta(meta);
-                        }
-                        player.getInventory().addItem(book);
                     }
+                    else if(args[1].equals("physical_gifted")){
+                        PaperJJK.getjobject(player).setvalues("physical_gifted",0,0,0,0);
+                        player.sendMessage(ChatColor.GREEN + "Physical Gifted.");
+                    }
+
                 }
                 else if(args[0].equals("id")){
                     if(args[1].equals("build")){
@@ -529,7 +416,7 @@ public class Jcommand implements TabExecutor {
             }
             else if(args.length==2){
                 if(args[0].equals("basic")){
-                    return Arrays.asList("infinity","mizushi");
+                    return Arrays.asList("infinity","mizushi","physical_gifted");
                 }
                 else if(args[0].equals("id")||args[0].equals("ed")||args[0].equals("nb")){
                     return Arrays.asList("build","destroy");
@@ -548,7 +435,16 @@ public class Jcommand implements TabExecutor {
                 }
             }
             else if(args.length==3){
-                if(args[0].equals("config")){
+                if(args[0].equals("basic")){
+                    // First parameter - max CE
+                    if(args[1].equals("infinity")){
+                        return Arrays.asList("50000000");
+                    }
+                    else if(args[1].equals("mizushi")){
+                        return Arrays.asList("400000000");
+                    }
+                }
+                else if(args[0].equals("config")){
                     // Get player's natural tech and return available skills
                     if(sender instanceof Player player){
                         Jobject jobject = PaperJJK.getjobject(player);
@@ -563,7 +459,7 @@ public class Jcommand implements TabExecutor {
                     }
                     return Arrays.asList("ao","aka","passive","kai","hachi","fuga");
                 }
-                if(args[0].equals("rule")){
+                else if(args[0].equals("rule")){
                     if(args[1].equals("breakblock")){
                         return Arrays.asList("true","false");
                     }
@@ -572,6 +468,34 @@ public class Jcommand implements TabExecutor {
                     }
                 }
 
+            }
+            else if(args.length==4){
+                if(args[0].equals("basic")){
+                    // Second parameter - output
+                    if(args[1].equals("infinity")){
+                        return Arrays.asList("10000");
+                    }
+                    else if(args[1].equals("mizushi")){
+                        return Arrays.asList("20000");
+                    }
+                }
+            }
+            else if(args.length==5){
+                if(args[0].equals("basic")){
+                    // Third parameter - level
+                    return Arrays.asList("1");
+                }
+            }
+            else if(args.length==6){
+                if(args[0].equals("basic")){
+                    // Fourth parameter - type/mode
+                    if(args[1].equals("infinity")){
+                        return Arrays.asList("0");
+                    }
+                    else if(args[1].equals("mizushi")){
+                        return Arrays.asList("1");
+                    }
+                }
             }
         }
         return List.of("");

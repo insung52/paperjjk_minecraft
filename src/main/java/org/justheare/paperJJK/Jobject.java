@@ -10,9 +10,12 @@ import org.bukkit.entity.Player;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
-import static org.justheare.paperJJK.PaperJJK.*;
+import static org.justheare.paperJJK.PaperJJK.getjobject;
+import static org.justheare.paperJJK.PaperJJK.is_black_flash;
 
 public class Jobject {
     public boolean ish_depence=false;
@@ -48,6 +51,7 @@ public class Jobject {
     public Entity cursedentity;
     public int infinity_stun_tick=0;    // 모든 행동 불가
     public int cursed_tech_block_tick=0;    // 술식 사용 불가
+    public boolean Physical_Gifted = false;
     public void black_flash(){
         black_flash_tick--;
         if(black_flash_tick==0){
@@ -94,15 +98,20 @@ public class Jobject {
     public int getremaincurrent(){
         return max_cursecurrent-cursecurrent;
     }
+    public static List<String> ish_unblockable = new ArrayList<>(Arrays.asList(
+            "aka",
+            "murasaki"
+    ));
 
     public boolean damaget(LivingEntity victim,char type, double damage, boolean physics,String spe_name, boolean sure_hit){
         if (physics) {
-
             boolean bf = is_black_flash(user,victim);
             if(bf){
                 damage=Math.pow(damage,1.5);
-                //event.setDamage(damage);
             }
+        }
+        else {
+            victim.addScoreboardTag("cursed");
         }
         Jobject v_jobject = getjobject(victim);
         if(v_jobject!=null){
@@ -122,14 +131,35 @@ public class Jobject {
 
                         }
                         else{
+
                             return false;
                         }
                         //event.setCancelled(ip.defence(attacker));
                     }
                 }
             }
+            else if(v_jobject.naturaltech.equals("physical_gifted") && !ish_unblockable.contains(spe_name)){
+                if(!victim.getEquipment().getItemInMainHand().isEmpty()) {
+                    if (PaperJJK.getItemTag(victim.getEquipment().getItemInMainHand()).equals("cw_ish")) {
+                        for (Jujut jujut : v_jobject.jujuts) {
+                            if (jujut instanceof PhysicalGifted ph && ph.spe_name.equals("reflex")) {
+                                if(sure_hit){
+
+                                }
+                                else{
+                                    ph.interact=true;
+                                    ph.interact_value+=1;
+                                    return false;
+                                }
+                                //event.setCancelled(ip.defence(attacker));
+                            }
+                        }
+                    }
+                }
+
+            }
         }
-        victim.addScoreboardTag("cursed");
+
 
         if(sure_hit){
             //victim.addScoreboardTag("sure_hit");
@@ -139,7 +169,7 @@ public class Jobject {
         return false;
     }
     public void jbasic(){
-        if(user instanceof LivingEntity living){
+        if(user instanceof LivingEntity living && !naturaltech.equals("physical_gifted")){
             living.setMaxHealth(20+Math.pow(max_curseenergy-5,0.3));
             user.sendMessage("health seted");
         }
@@ -170,6 +200,9 @@ public class Jobject {
                 user.sendMessage(ChatColor.LIGHT_PURPLE + "the Infinity.");
                 innate_domain = new Infinity_domain(this);
                 jbasic();
+                if(this instanceof Jplayer jplayer){
+                    jplayer.initializeSlots();
+                }
             }
             else if (name.contains("mizushi")) {
                 can_simple_domain = true;
@@ -185,6 +218,9 @@ public class Jobject {
                 user.sendMessage(ChatColor.RED + "the Mizushi.");
                 innate_domain = new Mizushi_domain(this);
                 jbasic();
+                if(this instanceof Jplayer jplayer){
+                    jplayer.initializeSlots();
+                }
             }
             else if (name.contains("mahoraga")){
                 blocked=false;
@@ -195,8 +231,26 @@ public class Jobject {
                 naturaltech = "mahoraga";
                 can_air_surface = true;
                 jbasic();
-            }
 
+            }
+            else if(name.contains("physical_gifted")){
+                curseenergy=0;
+                can_simple_domain = false;
+                simple_domain_type = false;
+                blocked = false;
+                max_curseenergy = mce;
+                max_cursecurrent = mcc;
+                reversecurse = rs == 0;
+                reversecurse_out = rso == 0;
+                naturaltech = "physical_gifted";
+                can_air_surface = true;
+                user.sendMessage(ChatColor.LIGHT_PURPLE + "Physical gifted.");
+                innate_domain = new Jdomain_innate(this);
+                jbasic();
+                if(this instanceof Jplayer jplayer){
+                    jplayer.initializeSlots();
+                }
+            }
         }
         else if(!naturaltech.isEmpty()&&user.isSneaking()){
             if(reversecurse){
@@ -268,6 +322,14 @@ public class Jobject {
                     jujuts.add(mahoraga);
                     // 저장된 적응 데이터 로드
                     JData.loadMahoragaAdaptData(mahoraga, this.uuid);
+                }
+            }
+            if(naturaltech.equals("physical_gifted")){
+                if(type.equals("dash")){
+                    PhysicalGifted physicalGifted = new PhysicalGifted(this,spe_name,type,false,power,duration,target);
+                    physicalGifted.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin,physicalGifted, 1 ,1);
+                    jujuts.add(physicalGifted);
+                    return physicalGifted.power;
                 }
             }
         }

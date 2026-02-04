@@ -433,6 +433,9 @@ class Mizushi_effector extends Jdomain_effector{
                                 tee.add(living);
                                 continue;
                             }
+                            if(jobject!=null && jobject.naturaltech.equals("physical_gifted")){
+                                continue;
+                            }
                             if(living.getLocation().distance(domain.location)< domain.range){
                                 Mizushi mizushi = new Mizushi(domain.owner,"","",true,1,20,'a');
                                 mizushi.show=false;

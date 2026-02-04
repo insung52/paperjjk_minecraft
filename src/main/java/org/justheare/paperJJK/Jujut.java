@@ -29,6 +29,8 @@ public class Jujut implements Runnable{
     Location t_location;
     public boolean fixed=false;
     public boolean fixable=false;
+    public boolean interact = false;
+    public double interact_value = 0.0;
     public double distance=1;
     double speed=0;
     boolean reversecurse;

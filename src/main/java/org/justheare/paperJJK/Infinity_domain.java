@@ -77,6 +77,9 @@ class Infinity_effector extends Jdomain_effector{
                                 tee.add(living);
                                 continue;
                             }
+                            if(jobject.naturaltech.equals("physical_gifted")){
+                                continue;
+                            }
                             jobject.infinity_stun_tick+=10;
                             if(jobject.naturaltech.equals("mahoraga")&&jobject.jujuts.get(0) instanceof Mahoraga mahoraga){
                                 if(mahoraga.pre_adapt("infinity_domain","curse",1)<0){

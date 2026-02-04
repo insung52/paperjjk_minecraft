@@ -100,9 +100,6 @@ public class Infinity extends Jujut{
                 JPacketSender.broadcastInfinityAkaSync(location, strength, uniqueId, 1000.0);
             }
         }
-
-
-
         soundtick++;
         maintick();
         if(!fixed){

@@ -3,10 +3,15 @@ package org.justheare.paperJJK;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
-import org.bukkit.entity.Mob;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.PluginManager;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
@@ -18,7 +23,6 @@ import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.Vector;
 import org.justheare.paperJJK.network.JPacketHandler;
 
-import java.lang.reflect.Method;
 import java.util.*;
 
 public final class PaperJJK extends JavaPlugin {
@@ -121,8 +125,10 @@ public final class PaperJJK extends JavaPlugin {
     }
     public static int getjobject_num(Entity entity){
         for(int r=0; r<jobjects.size(); r++){
-            if(jobjects.get(r).user.equals(entity)){
-                return r;
+            if(jobjects.get(r).user!=null){
+                if(jobjects.get(r).user.equals(entity)){
+                    return r;
+                }
             }
         }
         return -1;
@@ -141,75 +147,9 @@ public final class PaperJJK extends JavaPlugin {
         }
         return list;
     }
-
     /**
      * 몹의 AI Goal을 제거하되 물리 엔진은 유지
      */
-    public static void disableMobAI(LivingEntity entity) {
-        if (!(entity instanceof Mob mob)) {
-            return;
-        }
-
-        try {
-            // Reflection을 통해 NMS Mob 객체 접근
-            Method getHandleMethod = mob.getClass().getMethod("getHandle");
-            Object nmsMob = getHandleMethod.invoke(mob);
-
-            // goalSelector와 targetSelector 가져오기
-            Object goalSelector = nmsMob.getClass().getField("goalSelector").get(nmsMob);
-            Object targetSelector = nmsMob.getClass().getField("targetSelector").get(nmsMob);
-
-            // removeAllGoals 메소드 호출
-            Method removeAllGoalsMethod = goalSelector.getClass().getMethod("removeAllGoals", java.util.function.Predicate.class);
-            removeAllGoalsMethod.invoke(goalSelector, (java.util.function.Predicate<Object>) goal -> true);
-            removeAllGoalsMethod.invoke(targetSelector, (java.util.function.Predicate<Object>) goal -> true);
-
-            // 침묵 효과 (소리 방지)
-            entity.setSilent(true);
-
-        } catch (Exception e) {
-            // Reflection 실패 시 대체 방법
-            log("Failed to disable AI via reflection: " + e.getMessage());
-            entity.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS, 20, 255, false, false));
-            entity.addPotionEffect(new PotionEffect(PotionEffectType.MINING_FATIGUE, 20, 255, false, false));
-            entity.setSilent(true);
-        }
-    }
-
-    /**
-     * 몹의 AI를 복구
-     */
-    public static void restoreMobAI(LivingEntity entity) {
-        if (!(entity instanceof Mob mob)) {
-            return;
-        }
-
-        try {
-            // Reflection으로 NMS Mob 객체 접근
-            Method getHandleMethod = mob.getClass().getMethod("getHandle");
-            Object nmsMob = getHandleMethod.invoke(mob);
-
-            // registerGoals 메소드 호출 시도 (기본 AI 재등록)
-            try {
-                Method registerGoalsMethod = nmsMob.getClass().getDeclaredMethod("registerGoals");
-                registerGoalsMethod.setAccessible(true);
-                registerGoalsMethod.invoke(nmsMob);
-            } catch (NoSuchMethodException e) {
-                // registerGoals가 없으면 setAI 사용
-                log("no registerGoals");
-                mob.setAI(true);
-            }
-
-            // 침묵 해제
-            mob.setSilent(false);
-
-        } catch (Exception e) {
-            // 실패 시 기본 setAI 사용
-            log("Failed to restore AI via reflection: " + e.getMessage());
-            mob.setAI(true);
-            mob.setSilent(false);
-        }
-    }
     public static double get_calculated_power(Entity entity,String target,double power){
         if(entity instanceof Player player){
             if(player.getGameMode().equals(GameMode.CREATIVE)){
@@ -311,6 +251,40 @@ public final class PaperJJK extends JavaPlugin {
 
         return allOffsets;
     }
+    public static void potionpower(LivingEntity living, PotionEffectType potionEffectType, double curseenergy, int black_flash, boolean plus){
+        double power=0;
+        if(plus){
+            power = Math.log10(curseenergy+1)-1.5+black_flash;
+        }
+        else {
+            power = Math.log10(curseenergy+1)-3.5+black_flash;
+        }
+        if(power>0){  //
+            living.addPotionEffect(new PotionEffect(potionEffectType,plus?100:30, (int) power));
+        }
+    }
+    public static double physical_attack_damage (LivingEntity attacker){
+        double baseDamage = 1.0;
+        AttributeInstance attr = attacker.getAttribute(Attribute.ATTACK_DAMAGE);
+        if (attr != null) {
+            baseDamage = attr.getValue();
+        }
+
+        return baseDamage;
+    }
+    public static String getItemTag(ItemStack item) {
+        if (item == null ||item.getItemMeta()==null) {
+            //log("nnnull");
+            return "";
+        }
+        ItemMeta meta = item.getItemMeta();
+        NamespacedKey key = new NamespacedKey(jjkplugin, "custom_tag");
+        String rrr = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
+        if(rrr==null){
+            return "";
+        }
+        return rrr;
+    }
 }
 class manage implements Runnable{
     int tick=0;
@@ -318,26 +292,27 @@ class manage implements Runnable{
     double phi = 0;
     double step=Math.PI/(10);
     Location b_location;
-    public void potionpower(LivingEntity living,PotionEffectType potionEffectType, double curseenergy, int black_flash){
-        double power = Math.log10(curseenergy+1)-2.5+black_flash;
-        if(power>0){  //
-            living.addPotionEffect(new PotionEffect(potionEffectType,30, (int) power));
-        }
-    }
+
     @Override
     public void run() {
         tick++;
-
         // Tick simple domain power for all players
         SimpleDomainManager.tick();
-
         if(tick%20==0){
             for(Jobject jobject : PaperJJK.jobjects){
                 if(jobject.user instanceof LivingEntity living){
-                    potionpower(living,PotionEffectType.SPEED,jobject.curseenergy/5000, (jobject.black_flash_tick>0?2:0));
-                    potionpower(living,PotionEffectType.JUMP_BOOST,jobject.curseenergy/5000, (jobject.black_flash_tick>0?1:0));
-                    potionpower(living,PotionEffectType.STRENGTH,jobject.curseenergy, (jobject.black_flash_tick>0?1:0));
-
+                    if(jobject.naturaltech.equals("physical_gifted")){
+                        living.addPotionEffect(new PotionEffect(PotionEffectType.REGENERATION,30, 4));
+                        living.addPotionEffect(new PotionEffect(PotionEffectType.RESISTANCE,30, 2));
+                        living.addPotionEffect(new PotionEffect(PotionEffectType.HEALTH_BOOST,30, 40));
+                        PaperJJK.potionpower(living,PotionEffectType.SPEED,40000,0,false);
+                        PaperJJK.potionpower(living,PotionEffectType.STRENGTH,100000000,0,false);
+                    }
+                    else {
+                        PaperJJK.potionpower(living,PotionEffectType.SPEED,jobject.curseenergy/5000.0, (jobject.black_flash_tick>0?2:0),false);
+                        //PaperJJK.potionpower(living,PotionEffectType.JUMP_BOOST,jobject.curseenergy/5000, (jobject.black_flash_tick>0?1:0));
+                        PaperJJK.potionpower(living,PotionEffectType.STRENGTH,jobject.curseenergy, (jobject.black_flash_tick>0?1:0),false);
+                    }
                 }
             }
         }
@@ -353,7 +328,6 @@ class manage implements Runnable{
                         jobject.infinity_stun_tick=0;
                     }
                 }
-
             }
             if(jobject.infinity_stun_tick>0){
                 jobject.infinity_stun_tick--;
@@ -426,7 +400,7 @@ class manage implements Runnable{
                 jplayer.air_surface();
                 //jplayer.player.setAllowFlight(true);
                 if (((Jplayer) jobject).air_surface_tick == 0) {
-                    if (jobject.curseenergy > 500) {
+                    if (jobject.curseenergy > 500 || jobject.naturaltech.equals("physical_gifted")) {
                         jplayer.player.setAllowFlight(true);
                     }
                 }

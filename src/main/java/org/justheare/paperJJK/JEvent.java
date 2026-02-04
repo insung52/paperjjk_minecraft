@@ -9,12 +9,14 @@ import org.bukkit.block.BlockState;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.block.Action;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.bukkit.event.entity.EntityTargetEvent;
+import org.bukkit.event.entity.ProjectileHitEvent;
 import org.bukkit.event.player.*;
 import org.bukkit.event.weather.LightningStrikeEvent;
 import org.bukkit.inventory.InventoryHolder;
@@ -22,6 +24,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.BookMeta;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.util.Vector;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -58,6 +61,41 @@ public class JEvent implements Listener {
         if(jobject!=null&&event.getTarget()!=null){
             if(jobject.naturaltech.equals("mahoraga")){
                 jobject.jujuts.get(0).m_target=event.getTarget();
+            }
+        }
+    }
+    @EventHandler
+    public void onProjectileHit(ProjectileHitEvent event){
+        Entity victim = event.getHitEntity();
+        Projectile projectile = event.getEntity();
+        if(victim!=null){
+            Jobject v_jobject = PaperJJK.getjobject(victim);
+            if(v_jobject!=null){
+                if(v_jobject.naturaltech.equals("physical_gifted")){
+                    for (Jujut jujut : v_jobject.jujuts) {
+                        if (jujut instanceof PhysicalGifted ph&&jujut.spe_name.equals("reflex")) {
+                            ph.interact = true;
+
+                            Vector v = projectile.getVelocity(); // 기존 속도
+                            ph.interact_value += ph.interact_value*0.1 + v.length()*0.9;
+                            ph.location = projectile.getLocation().add(0,0,0);
+                            Vector n = projectile.getLocation()
+                                    .toVector()
+                                    .subtract(victim.getLocation().add(0,1,0).toVector())
+                                    .normalize(); // 반사 기준
+                            // v' = v - 2 * (v · n) * n
+                            Vector reflected = v.clone().subtract(
+                                    n.clone().multiply(2 * v.dot(n))).normalize().multiply(Math.random()*1+0.5)
+                                    .add(n)
+                                    .add(Vector.getRandom()
+                                            .add(new Vector(-0.5,-0.5,-0.5)));
+
+                            projectile.setVelocity(reflected);
+                            event.setCancelled(true);
+                            break;
+                        }
+                    }
+                }
             }
         }
     }
@@ -199,7 +237,6 @@ public class JEvent implements Listener {
                 else{
                 }
             }
-
             if(v_jobject.naturaltech.equals("infinity")){   //infinity defence
                 for (Jujut jujut : v_jobject.jujuts) {
                     if (jujut instanceof Infinity_passive ip) {
@@ -211,8 +248,6 @@ public class JEvent implements Listener {
                                 return;
                             }
                         }
-
-
                         else if(atj==null){
                             event.setCancelled(true);
                             return;
@@ -223,6 +258,23 @@ public class JEvent implements Listener {
                             return;
                         }
                         //event.setCancelled(ip.defence(attacker));
+                    }
+                }
+            }
+            else if(v_jobject.naturaltech.equals("physical_gifted")){
+                for (Jujut jujut : v_jobject.jujuts){
+                    if(jujut instanceof PhysicalGifted ph && ph.spe_name.equals("reflex")){
+                        if(!victim.getScoreboardTags().contains("cursed")){
+                            if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.PROJECTILE)){
+                                ph.location = attacker.getLocation().add(0,attacker.getHeight()/2,0);
+                                ph.interact=true;
+                                ph.interact_value+=1;
+                                if(damage<20){
+                                    event.setCancelled(true);
+                                    return;
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -560,14 +612,12 @@ public class JEvent implements Listener {
             //log("nnnull");
             return "";
         }
-
         ItemMeta meta = item.getItemMeta();
         NamespacedKey key = new NamespacedKey(jjkplugin, "custom_tag");
         String rrr = meta.getPersistentDataContainer().get(key, PersistentDataType.STRING);
         if(rrr==null){
             return "";
         }
-
         return rrr;
     }
 

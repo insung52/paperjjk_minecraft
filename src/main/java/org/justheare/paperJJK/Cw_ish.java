@@ -1,5 +1,6 @@
 package org.justheare.paperJJK;
 
+import org.bukkit.Bukkit;
 import org.bukkit.Particle;
 import org.bukkit.Sound;
 import org.bukkit.entity.LivingEntity;
@@ -25,6 +26,13 @@ public class Cw_ish extends Jujut {
         }
         */
     }
+    public void disables(){
+        jobject.cursecurrent-=power*efficiency;
+        jobject.ish_depence=false;
+        jobject.jujuts.remove(this);
+        Bukkit.getScheduler().cancelTask(tasknum);
+        disabled();
+    }
     @Override
     public void run(){
         if(time>0){
@@ -39,7 +47,7 @@ public class Cw_ish extends Jujut {
                 else {
                     location.getWorld().spawnParticle(Particle.SWEEP_ATTACK,user.getLocation().add(0,1,0).add(user.getLocation().getDirection()),1,0.1,0.1,0.1,2);
                 }
-                if(time%3==0){
+                if(jobject.naturaltech.equals("physical_gifted")){
                     user.getWorld().playSound(user, Sound.ITEM_TRIDENT_THROW,1F, 0.7F);
                     @NotNull Collection<LivingEntity> targets = user.getLocation().getNearbyLivingEntities(3,3,3);
                     targets.remove(user);
@@ -48,6 +56,18 @@ public class Cw_ish extends Jujut {
                         jobject.damaget(living,'j',2+strength,true,"ish",false);
                     }
                 }
+                else {
+                    if(time%3==0){
+                        user.getWorld().playSound(user, Sound.ITEM_TRIDENT_THROW,1F, 0.7F);
+                        @NotNull Collection<LivingEntity> targets = user.getLocation().getNearbyLivingEntities(3,3,3);
+                        targets.remove(user);
+                        int strength = PaperJJK.getStrengthAmplifier((LivingEntity) user);
+                        for(LivingEntity living : targets){
+                            jobject.damaget(living,'j',2+strength,true,"ish",false);
+                        }
+                    }
+                }
+
             }
 
         }

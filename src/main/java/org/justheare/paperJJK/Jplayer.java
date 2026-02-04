@@ -56,12 +56,18 @@ public class Jplayer extends Jobject{
                 slot3Skill = "mizushi_fuga";
                 slot4Skill = "mizushi_kai";
                 break;
+            case "physical_gifted":
+                slot1Skill = "dash";
+                slot2Skill = "reflex";
+                slot3Skill = "dash";
+                slot4Skill = "dash";
+                break;
             default:
                 // Default to infinity if unknown
-                slot1Skill = "infinity_ao";
-                slot2Skill = "infinity_aka";
-                slot3Skill = "infinity_passive";
-                slot4Skill = "infinity_ao";
+                slot1Skill = "";
+                slot2Skill = "";
+                slot3Skill = "";
+                slot4Skill = "";
                 break;
         }
 
@@ -112,14 +118,15 @@ public class Jplayer extends Jobject{
                 player.setAllowFlight(false);
                 air_surface_tick = 5;
                 if(curseenergy>0) {
+                    PaperJJK.potionpower(player,PotionEffectType.SPEED,curseenergy/5000.0, (black_flash_tick>0?2:0),true);
+                    PaperJJK.potionpower(player,PotionEffectType.JUMP_BOOST,curseenergy/5000.0, (black_flash_tick>0?1:0), true);
+                    PaperJJK.potionpower(player,PotionEffectType.STRENGTH,curseenergy, (black_flash_tick>0?1:0),true);
                     if(Math.pow(getremaincurrent() + 1, 0.5) / 5>3){
                         player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(3));
                     }
                     else{
                         player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(Math.pow(getremaincurrent()+1,0.5)/5));
                     }
-
-
                     player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
                     player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
                     curseenergy -= getremaincurrent() / 10 + 2;
@@ -127,10 +134,21 @@ public class Jplayer extends Jobject{
                         player.setAllowFlight(true);
                     }
                 }
+                if(naturaltech.equals("physical_gifted")){
+                    PaperJJK.potionpower(player,PotionEffectType.SPEED,40000,0,true);
+                    PaperJJK.potionpower(player,PotionEffectType.STRENGTH,100000000,0,true);
+                    PaperJJK.potionpower(player,PotionEffectType.JUMP_BOOST,40000, 0,true);
+                    player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(4));
+                    player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
+                    player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
+                    if (can_air_surface) {
+                        player.setAllowFlight(true);
+                    }
+                }
             }
         }
         if (can_air_surface) {
-            if (!player.isOnGround() && player.isSneaking() && curseenergy>100) {
+            if (!player.isOnGround() && player.isSneaking() && (curseenergy>100||naturaltech.equals("physical_gifted"))) {
                 player.addPotionEffect(new PotionEffect(PotionEffectType.LEVITATION, 5, 0));
                 //player.addPotionEffect(new PotionEffect(PotionEffectType.SLOW_FALLING, 5, 2));
             }

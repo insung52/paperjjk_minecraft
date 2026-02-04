@@ -179,6 +179,7 @@ public class Mahoraga extends Jujut{
         user.getWorld().playSound(user.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_CLOSE_SHUTTER,10F,0.8F);
         user.getWorld().playSound(user.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_DETECT_PLAYER,10F,0.7F);
         user.getWorld().playSound(user.getLocation(), Sound.BLOCK_PISTON_CONTRACT,10F,0.5F);
+        jobject.curseenergy = 0;
         PaperJJK.log(target);
         jobject.infinity_stun_tick=0;
         if(user instanceof LivingEntity living){

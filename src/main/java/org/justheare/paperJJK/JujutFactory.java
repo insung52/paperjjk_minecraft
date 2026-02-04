@@ -61,6 +61,18 @@ public class JujutFactory {
                 jujut.skillId = skillId;
                 break;
 
+            case "dash":
+                jujut = new PhysicalGifted(jplayer,"dash","physical_gifted",false,power,10,'a');
+                jujut.rechargeable = false;
+                jujut.skillId =skillId;
+                break;
+
+            case "reflex":
+                jujut = new PhysicalGifted(jplayer,"reflex","physical_gifted",false,power,20,'a');
+                jujut.rechargeable = false;
+                jujut.skillId =skillId;
+                break;
+
             default:
                 PaperJJK.log(
                     String.format("Unknown skill ID: %s", skillId)
@@ -79,7 +91,8 @@ public class JujutFactory {
 
         return switch (skillId.toLowerCase()) {
             case "infinity_passive", "infinity_ao", "infinity_aka",
-                 "mizushi_kai", "mizushi_hachi", "mizushi_fuga" -> true;
+                 "mizushi_kai", "mizushi_hachi", "mizushi_fuga",
+                    "dash", "reflex" -> true;
             default -> false;
         };
     }
@@ -117,6 +130,7 @@ public class JujutFactory {
         return switch (naturalTech.toLowerCase()) {
             case "infinity" -> java.util.List.of("infinity_passive", "infinity_ao", "infinity_aka");
             case "mizushi" -> java.util.List.of("mizushi_kai", "mizushi_hachi", "mizushi_fuga");
+            case "physical_gifted" -> java.util.List.of("dash", "reflex");
             default -> java.util.List.of();
         };
     }
@@ -144,7 +158,9 @@ public class JujutFactory {
             case "infinity_aka" -> "적 (Aka)";
             case "mizushi_kai" -> "해 (Kai)";
             case "mizushi_hachi" -> "팔 (Hachi)";
-            case "mizushi_fuga" -> "부가 (Fuga)";
+            case "mizushi_fuga" -> "푸가 (Fuga)";
+            case "dash" -> "대쉬 (dash)";
+            case "reflex" -> "반사 신경 (reflex)";
             default -> skillId;
         };
     }
