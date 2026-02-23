@@ -118,27 +118,47 @@ public class Jplayer extends Jobject{
                 player.setAllowFlight(false);
                 air_surface_tick = 5;
                 if(curseenergy>0) {
-                    PaperJJK.potionpower(player,PotionEffectType.SPEED,curseenergy/5000.0, (black_flash_tick>0?2:0),true);
-                    PaperJJK.potionpower(player,PotionEffectType.JUMP_BOOST,curseenergy/5000.0, (black_flash_tick>0?1:0), true);
-                    PaperJJK.potionpower(player,PotionEffectType.STRENGTH,curseenergy, (black_flash_tick>0?1:0),true);
-                    if(Math.pow(getremaincurrent() + 1, 0.5) / 5>3){
-                        player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(3));
+                    if(naturaltech.equals("infinity") && cursed_tech_block_tick==0){
+                        PaperJJK.potionpower(player,PotionEffectType.SPEED,curseenergy/5000.0*2, (black_flash_tick>0?2:0),true);
+                        PaperJJK.potionpower(player,PotionEffectType.JUMP_BOOST,curseenergy/5000.0*2, (black_flash_tick>0?1:0), true);
+                        PaperJJK.potionpower(player,PotionEffectType.STRENGTH,curseenergy*2, (black_flash_tick>0?1:0),true);
+                        if(Math.pow(getremaincurrent() + 1, 0.5) / 5>6){
+                            player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(6));
+                        }
+                        else{
+                            player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(Math.pow(getremaincurrent()+1,0.5)/5));
+                        }
+                        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.8F);
+                        player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
+                        curseenergy -= getremaincurrent() / 10 + 2;
+                        if (can_air_surface) {
+                            player.setAllowFlight(true);
+                        }
                     }
                     else{
-                        player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(Math.pow(getremaincurrent()+1,0.5)/5));
+                        PaperJJK.potionpower(player,PotionEffectType.SPEED,curseenergy/5000.0, (black_flash_tick>0?2:0),true);
+                        PaperJJK.potionpower(player,PotionEffectType.JUMP_BOOST,curseenergy/5000.0, (black_flash_tick>0?1:0), true);
+                        PaperJJK.potionpower(player,PotionEffectType.STRENGTH,curseenergy, (black_flash_tick>0?1:0),true);
+                        if(Math.pow(getremaincurrent() + 1, 0.5) / 5>3){
+                            player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(3));
+                        }
+                        else{
+                            player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(Math.pow(getremaincurrent()+1,0.5)/5));
+                        }
+                        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
+                        player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
+                        curseenergy -= getremaincurrent() / 10 + 2;
+                        if (can_air_surface) {
+                            player.setAllowFlight(true);
+                        }
                     }
-                    player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
-                    player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
-                    curseenergy -= getremaincurrent() / 10 + 2;
-                    if (can_air_surface) {
-                        player.setAllowFlight(true);
-                    }
+
                 }
                 if(naturaltech.equals("physical_gifted")){
                     PaperJJK.potionpower(player,PotionEffectType.SPEED,40000,0,true);
                     PaperJJK.potionpower(player,PotionEffectType.STRENGTH,100000000,0,true);
                     PaperJJK.potionpower(player,PotionEffectType.JUMP_BOOST,40000, 0,true);
-                    player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(4));
+                    player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(5));
                     player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
                     player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
                     if (can_air_surface) {

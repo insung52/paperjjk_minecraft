@@ -190,7 +190,10 @@ public class JEvent implements Listener {
                 living.setNoDamageTicks(2);
             }
         }
-        if(!victim.getScoreboardTags().contains("cursed")){
+        if(!victim.getScoreboardTags().contains("cursed") && a_jobject!=null){
+            if((event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)||event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_SWEEP_ATTACK)) &&attacker instanceof LivingEntity living&&living.getEquipment().getItemInMainHand().isEmpty()&&a_jobject.cursed_tech_block_tick==0){
+                a_jobject.attack_effector(victim);
+            }
             if(attacker instanceof  Player player&&!player.getEquipment().getItemInMainHand().isEmpty()){
                 if(getItemTag(player.getEquipment().getItemInMainHand()).equals("cw_ish")&&player.getCooldown(player.getEquipment().getItemInMainHand().getType())==0){
                     player.setCooldown(player.getEquipment().getItemInMainHand().getType(),getjobject(player).usecw("ish",true));
@@ -293,8 +296,8 @@ public class JEvent implements Listener {
                 if(v_jobject.cursespirit) {
                     event.setCancelled(true);
                 }
-                if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)){
-                    boolean bf = is_black_flash(attacker,victim);
+                if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK) && attacker instanceof LivingEntity living){
+                    boolean bf = is_black_flash(living,victim);
                     if(bf){
                         damage=Math.pow(damage,1.5);
                     }
@@ -311,8 +314,8 @@ public class JEvent implements Listener {
                 victim.removeScoreboardTag("cursed");
             }
             else {
-                if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK)){
-                    boolean bf = is_black_flash(attacker,victim);
+                if(event.getCause().equals(EntityDamageEvent.DamageCause.ENTITY_ATTACK) && attacker instanceof LivingEntity living){
+                    boolean bf = is_black_flash(living,victim);
                     if(bf){
                         damage=damage*damage;
                         event.setDamage(damage);

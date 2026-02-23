@@ -62,7 +62,7 @@ public class Mizushi_domain extends Jdomain_innate{
     }
 
     /**
-     * Send START packet to clients for domain visualization
+     * Send START packet to ALL online players (cross-world)
      * Called when barrier-less domain expansion begins
      */
     void sendDomainStartPacket() {
@@ -80,23 +80,23 @@ public class Mizushi_domain extends Jdomain_innate{
         out.writeDouble(nb_location.getZ());
         out.writeInt(nb_range);
         out.writeInt(0x3C3C3C);  // Dark gray color
-        out.writeFloat(30.0f);   // Expansion speed: 4 blocks/tick * 20 ticks/sec = 80 blocks/sec
+        out.writeFloat(30.0f);   // Expansion speed hint
         out.writeLong(domainId.getMostSignificantBits());
         out.writeLong(domainId.getLeastSignificantBits());
 
-        sendPacketToNearbyPlayers(out.toByteArray(), nb_range);
+        sendPacketToAllPlayers(out.toByteArray());
         PaperJJK.log("[Mizushi Domain] Sent START packet: domainId=" + domainId + ", maxRadius=" + nb_range);
     }
 
     /**
-     * Send SYNC packet to clients (every 3 seconds)
-     * Corrects client-side drift
+     * Send SYNC packet to nearby players only (distance-filtered)
+     * Corrects client-side drift during expansion
      */
     void sendDomainSyncPacket() {
         if (owner.player == null || domainId == null) return;
 
         long currentTime = System.currentTimeMillis();
-        if (currentTime - lastSyncTime < 200) return;  // Only sync every 3 seconds
+        if (currentTime - lastSyncTime < 200) return;  // Only sync every 200ms
 
         lastSyncTime = currentTime;
 
@@ -112,7 +112,25 @@ public class Mizushi_domain extends Jdomain_innate{
     }
 
     /**
-     * Send END packet to clients when domain is destroyed
+     * Send COMPLETE packet to ALL online players when expansion reaches max radius
+     * Guarantees clients snap to the correct final radius regardless of missed SYNCs
+     */
+    void sendDomainCompletePacket() {
+        if (owner.player == null || domainId == null) return;
+
+        ByteArrayDataOutput out = ByteStreams.newDataOutput();
+        out.writeByte(PacketIds.DOMAIN_VISUAL);
+        out.writeByte(PacketIds.DomainVisualAction.COMPLETE);
+        out.writeLong(domainId.getMostSignificantBits());
+        out.writeLong(domainId.getLeastSignificantBits());
+        out.writeFloat((float) nb_range);
+
+        sendPacketToAllPlayers(out.toByteArray());
+        PaperJJK.log("[Mizushi Domain] Sent COMPLETE packet: domainId=" + domainId + ", finalRadius=" + nb_range);
+    }
+
+    /**
+     * Send END packet to ALL online players when domain is destroyed
      */
     void sendDomainEndPacket() {
         if (owner.player == null || domainId == null) return;
@@ -123,18 +141,29 @@ public class Mizushi_domain extends Jdomain_innate{
         out.writeLong(domainId.getMostSignificantBits());
         out.writeLong(domainId.getLeastSignificantBits());
 
-        sendPacketToNearbyPlayers(out.toByteArray(), nb_range + 50);  // Extended range for cleanup
+        sendPacketToAllPlayers(out.toByteArray());
         PaperJJK.log("[Mizushi Domain] Sent END packet: domainId=" + domainId);
     }
 
     /**
-     * Send packet to all players within range
+     * Send packet to ALL online players regardless of world or distance
+     * Used for START, COMPLETE, END packets
+     */
+    private void sendPacketToAllPlayers(byte[] data) {
+        for (Player player : Bukkit.getOnlinePlayers()) {
+            player.sendPluginMessage(PaperJJK.jjkplugin, "paperjjk:main", data);
+        }
+    }
+
+    /**
+     * Send packet to nearby players within range (same world, distance-filtered)
+     * Used for SYNC packets only
      */
     private void sendPacketToNearbyPlayers(byte[] data, double range) {
         if (owner.player == null) return;
 
         Location center = nb_location != null ? nb_location : owner.player.getLocation();
-        for (Player player : center.getNearbyPlayers(1000)) {
+        for (Player player : center.getNearbyPlayers(range)) {
             player.sendPluginMessage(PaperJJK.jjkplugin, "paperjjk:main", data);
         }
     }
@@ -151,6 +180,7 @@ class Mizushi_effector extends Jdomain_effector{
     java.util.List<Vector> shellBlockList_special = null;
     int shellBlockIndex_special = 0;
     boolean startPacketSent = false;
+    boolean completeSent = false;
     Particle.DustOptions dark_dust2=new Particle.DustOptions(Color.fromRGB(60,0,0), 1F);
     public void effect_tick(){
 
@@ -168,6 +198,7 @@ class Mizushi_effector extends Jdomain_effector{
                         if (domain.current_radius >= domain.nb_range) {
                             domain.special = false;
                             domain.current_radius = domain.nb_range;
+                            if (!completeSent) { domain.sendDomainCompletePacket(); completeSent = true; }
                             domain.undrow_expand();
                             break;
                         }
@@ -253,6 +284,7 @@ class Mizushi_effector extends Jdomain_effector{
                             if (domain.current_radius >= domain.nb_range) {
                                 domain.special = false;
                                 domain.current_radius = domain.nb_range;
+                                if (!completeSent) { domain.sendDomainCompletePacket(); completeSent = true; }
                                 domain.undrow_expand();
                                 break;
                             }
@@ -267,6 +299,12 @@ class Mizushi_effector extends Jdomain_effector{
                     }
                 }
                 else{
+                    // Send COMPLETE once when expansion first reaches max radius
+                    if (!completeSent && domain.current_radius >= domain.nb_range) {
+                        domain.sendDomainCompletePacket();
+                        completeSent = true;
+                    }
+
                     if(domain.current_radius < domain.nb_range){
                         //PaperJJK.log("running");
 

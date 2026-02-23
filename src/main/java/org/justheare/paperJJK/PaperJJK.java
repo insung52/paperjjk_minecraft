@@ -1,9 +1,6 @@
 package org.justheare.paperJJK;
 
-import org.bukkit.Bukkit;
-import org.bukkit.GameMode;
-import org.bukkit.Location;
-import org.bukkit.NamespacedKey;
+import org.bukkit.*;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Entity;
@@ -167,14 +164,40 @@ public final class PaperJJK extends JavaPlugin {
             return power;
         }
     }
-    public static boolean is_black_flash(Entity attacker, Entity victim){
+    public static boolean is_black_flash(LivingEntity attacker, Entity victim){
         Jobject attacker_jobject = getjobject(attacker);
-        if(attacker_jobject!=null){
+        if(attacker_jobject!=null && attacker.getEquipment().getItemInMainHand().isEmpty()){
             if(attacker_jobject.curseenergy>200){
                 if(Math.random()<=attacker_jobject.black_flash_num){
                     attacker_jobject.black_flash_tick=20*60;
                     attacker_jobject.curseenergy+=(attacker_jobject.max_curseenergy-attacker_jobject.curseenergy)*0.2;
-                    victim.getLocation().createExplosion(attacker,2,false,rule_breakblock);
+                    double distances = attacker.getEyeLocation().distance(victim.getLocation());
+                    victim.getLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.9)).createExplosion(attacker,2,false,rule_breakblock);
+                    victim.setVelocity(victim.getVelocity().add(attacker.getEyeLocation().getDirection().multiply(3+Math.log10(attacker_jobject.curseenergy)*0.5)));
+                    attacker.getWorld().spawnParticle(
+                            Particle.FLASH,
+                            attacker.getEyeLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.7)),
+                            10,
+                            2.0, 2.0, 2.0,
+                            10.0,
+                            Color.fromARGB(128, 255, 255, 255)
+                    );
+                    attacker.getWorld().spawnParticle(
+                            Particle.FLASH,
+                            attacker.getEyeLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.7)),
+                            1,
+                            0.5, 0.5, 0.5,
+                            1.0,
+                            Color.fromARGB(128, 255, 255, 255)
+                    );
+                    attacker.getWorld().spawnParticle(
+                            Particle.FLASH,
+                            attacker.getEyeLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.7)),
+                            10,
+                            2.0, 2.0, 2.0,
+                            10.0,
+                            Color.fromARGB(128, 255, 50, 50)
+                    );
                     return true;
                 }
             }

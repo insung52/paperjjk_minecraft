@@ -52,16 +52,55 @@ public class Jobject {
     public int infinity_stun_tick=0;    // 모든 행동 불가
     public int cursed_tech_block_tick=0;    // 술식 사용 불가
     public boolean Physical_Gifted = false;
+    public void attack_effector(Entity victim){
+        if(naturaltech.equals("infinity")&&user instanceof LivingEntity living){
+            if(Math.random()<0.3){
+                double distances = living.getEyeLocation().distance(victim.getLocation());
+                living.getWorld().spawnParticle(
+                        Particle.FLASH,
+                        living.getEyeLocation().add(living.getEyeLocation().getDirection().multiply(distances*0.7)),
+                        1,
+                        1.0, 1.0, 1.0,
+                        1.0,
+                        Color.fromARGB(10, 0, 0, 255)
+                );
+            }
+
+        }
+    }
     public void black_flash(){
         black_flash_tick--;
-        if(black_flash_tick==0){
+        if(black_flash_tick>=20*59){
+            double tick = (20*60 - black_flash_tick)*1.0;
+            Particle.Spell spell = new Particle.Spell(Color.BLACK,1.0f);
+            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 10, tick, tick, tick, 0.5,spell);
+            spell = new Particle.Spell(Color.fromARGB(255, 128, 0, 0),1.0f);
+            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 10, tick, tick, tick, 0.5,spell);
+
+            user.getWorld().spawnParticle(
+                    Particle.FLASH,
+                    user.getLocation(),
+                    3,
+                    tick, tick, tick,
+                    10.0,
+                    Color.fromARGB(128, 255, 50, 50)
+            );
+            user.getWorld().spawnParticle(
+                    Particle.FLASH,
+                    user.getLocation(),
+                    3,
+                    tick, tick, tick,
+                    10.0,
+                    Color.fromARGB(128, 255, 255, 255)
+            );
+
         }
         else{
             if (curseenergy < max_curseenergy) {
                 curseenergy += max_curseenergy / 1000000 + 1;
             }
             //Particle.DustOptions dust=new Particle.DustOptions(Color.BLACK, 1);
-            user.getWorld().spawnParticle(Particle.ENTITY_EFFECT, user.getLocation(), 3, 0.5, 0.5, 0.5, 0.5,Color.BLACK);
+            user.getWorld().spawnParticle(Particle.ENTITY_EFFECT, user.getLocation(), 1, 0.5, 0.5, 0.5, 0.5,Color.BLACK);
         }
     }
     public boolean use_domain(String[] values,boolean cancel){
@@ -104,8 +143,8 @@ public class Jobject {
     ));
 
     public boolean damaget(LivingEntity victim,char type, double damage, boolean physics,String spe_name, boolean sure_hit){
-        if (physics) {
-            boolean bf = is_black_flash(user,victim);
+        if (physics && user instanceof LivingEntity living) {
+            boolean bf = is_black_flash(living,victim);
             if(bf){
                 damage=Math.pow(damage,1.5);
             }
