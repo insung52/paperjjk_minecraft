@@ -172,8 +172,10 @@ public class SimpleDomainManager {
                 Location ylocation = data.location.clone();
                 ylocation.setY(player.getLocation().getY());
                 if(player.getLocation().distance(ylocation)>radius){
-                    data.power = Math.max(0.0, data.power - BASE_DECAY_RATE*5);
-                    JPacketSender.sendSimpleDomainPowerSync(player, data.power, casterUid);
+                    data.power = Math.max(0.0, data.power - BASE_DECAY_RATE);
+                    if(Math.random()<0.5){
+                        JPacketSender.sendSimpleDomainPowerSync(player, data.power, casterUid);
+                    }
                     final double syncPower = data.power;
                     forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainPowerSync(p, syncPower, casterUid));
                 }
@@ -338,13 +340,13 @@ public class SimpleDomainManager {
 
                 // Spawn white firework particle (no velocity, no offset)
                 center.getWorld().spawnParticle(
-                        Particle.ELECTRIC_SPARK,
+                        Particle.FIREWORK,
                         particleLoc,
-                        1,    // count
-                        0.1,  // offsetX
-                        0.1,  // offsetY
-                        0.1,  // offsetZ
-                        0.1   // extra (speed)
+                        0,    // count
+                        0.1,  // dirX
+                        0.1,  // dirY
+                        0.1,  // dirZ
+                        0.1   // extra
                 );
             }
         }
