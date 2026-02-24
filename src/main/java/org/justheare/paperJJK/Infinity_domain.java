@@ -73,7 +73,7 @@ class Infinity_effector extends Jdomain_effector{
                             // Check if simple domain is active (blocks sure-hit effect)
                             if(jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
                                 // Simple domain is active - ignore sure-hit effect
-                                breakSimpleDomain(player,1);
+                                breakSimpleDomain(player,0.5);
                                 continue;
                             }
                             if(jobject.naturaltech.equals("physical_gifted")){

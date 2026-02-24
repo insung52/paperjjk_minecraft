@@ -548,9 +548,9 @@ class Jdomain_effector implements Runnable{
         }
         domain.domain_targets = tee;
     }
-    public void breakSimpleDomain(Player target,  int mul){
+    public void breakSimpleDomain(Player target,  double mul){
         // Todo : decreasePower
-        SimpleDomainManager.decreasePower(target, domain.level*mul);
+        SimpleDomainManager.decreasePower(target, domain.level*mul*0.05);
     }
     public void effect_tick(){
         if(domain.no_border_on){

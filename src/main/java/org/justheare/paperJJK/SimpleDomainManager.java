@@ -10,11 +10,7 @@ import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 import org.justheare.paperJJK.network.JPacketSender;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Consumer;
 
 /**
@@ -103,6 +99,7 @@ public class SimpleDomainManager {
      * Called every game tick (20 times per second)
      */
     static int chargingfinishtick=0;
+    static int max_chargingfinishtick=5;
     public static void tick() {
         for (Map.Entry<UUID, SimpleDomainData> entry : playerData.entrySet()) {
             UUID uuid = entry.getKey();
@@ -122,6 +119,18 @@ public class SimpleDomainManager {
                     JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location, casterUid);
                     forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainChargingEnd(p, data.power, data.location, casterUid));
                 } else {
+                    //sound
+                    player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,1, 1));
+                    if(data.power<=MAX_POWER-1){
+                        showExpandParticleEffect(player,Math.max(data.power - EXPANSION_DELAY,0.2),data.location);
+                        if(Math.random()<0.5){
+                            player.getWorld().playSound(player, Sound.BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM, (float) (data.power/MAX_POWER)/2+0.1f, (float) (data.power/MAX_POWER)+0.5f);
+                        }
+                    }
+                    else if(chargingfinishtick>0){
+                        chargingfinishtick--;
+                        showExpandParticleEffect(player,Math.max(data.power - EXPANSION_DELAY,0.2),data.location);
+                    }
                     // Charging: Increase power
                     Vector loc_direction = player.getLocation().toVector().add(data.location.toVector().multiply(-1));
                     double speed = Math.min(loc_direction.length(),0.1);
@@ -139,18 +148,7 @@ public class SimpleDomainManager {
                         }
                     }
                 }
-                //sound
-                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,1, 1));
-                if(data.power<=MAX_POWER-1){
-                    showExpandParticleEffect(player,Math.max(data.power - EXPANSION_DELAY,0.2),data.location);
-                    if(Math.random()<0.5){
-                        player.getWorld().playSound(player, Sound.BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM, (float) (data.power/MAX_POWER)/2+0.1f, (float) (data.power/MAX_POWER)+0.5f);
-                    }
-                }
-                else if(chargingfinishtick>0){
-                    chargingfinishtick--;
-                    showExpandParticleEffect(player,Math.max(data.power - EXPANSION_DELAY,0.2),data.location);
-                }
+
             }
             else if (data.power > 0) {
                 // Not charging: Decrease power
@@ -211,7 +209,7 @@ public class SimpleDomainManager {
         return getPower(player) >= EXPANSION_DELAY;
     }
 
-    public static void decreasePower(Player player, int level){
+    public static void decreasePower(Player player, double level){
         SimpleDomainData data = playerData.get(player.getUniqueId());
         if (data == null) return;
         UUID casterUid = player.getUniqueId();
@@ -224,7 +222,7 @@ public class SimpleDomainManager {
             Location soundLoc = new Location(data.location.getWorld(), sx, data.location.getY(), sz);
             data.location.getWorld().playSound(soundLoc, Sound.BLOCK_GLASS_BREAK, 0.3f, 1.1f);
         }
-        data.power = Math.max(0, data.power - (((double) level) / 7.0));
+        data.power = Math.max(0, data.power - level);
         if (data.power == 0.0 && prevPower > 0.0) {
             JPacketSender.sendSimpleDomainDeactivate(player, casterUid);
             forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainDeactivate(p, casterUid));

@@ -418,7 +418,7 @@ class Mizushi_effector extends Jdomain_effector{
                             Jobject jobject = PaperJJK.getjobject(living);
                             if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
                                 // Simple domain is active - ignore sure-hit effect
-                                breakSimpleDomain(player,1);
+                                breakSimpleDomain(player,0.5);
                                 continue;
                             }
                             if(tick%4==0){
@@ -458,7 +458,7 @@ class Mizushi_effector extends Jdomain_effector{
                         Jobject jobject = PaperJJK.getjobject(living);
                         if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
                             // Simple domain is active - ignore sure-hit effect
-                            breakSimpleDomain(player,1);
+                            breakSimpleDomain(player,0.5);
                             continue;
                         }
                         if(jobject!=null && jobject.naturaltech.equals("physical_gifted")){
