@@ -25,7 +25,7 @@ public class Infinity_passive extends Jujut{
         j_entities_location=new ArrayList<Location>();
         fixable=true;
         setcurrent(1,5);
-        user.getWorld().playSound(((Player)user).getEyeLocation(), Sound.BLOCK_RESPAWN_ANCHOR_DEPLETE,1,1);
+        user.getWorld().playSound(user, Sound.BLOCK_CONDUIT_ACTIVATE,1,0.5F);
         //user.getWorld().setBiome(location,Biome.);
     }
     public void defending(Entity entity,char type){
@@ -142,7 +142,7 @@ public class Infinity_passive extends Jujut{
         //location.getWorld().spawnParticle(Particle.T);
     }
     public void disabled(){
-        user.getWorld().playSound(user.getLocation(), Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 1, 2);
+        user.getWorld().playSound(user, Sound.BLOCK_RESPAWN_ANCHOR_SET_SPAWN, 1, 2);
     }
     public boolean scroll(int count){
         if(count>0){

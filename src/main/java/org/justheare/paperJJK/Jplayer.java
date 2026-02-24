@@ -128,7 +128,7 @@ public class Jplayer extends Jobject{
                         else{
                             player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(Math.pow(getremaincurrent()+1,0.5)/5));
                         }
-                        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.8F);
+                        player.getWorld().playSound(player, Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.8F);
                         player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
                         curseenergy -= getremaincurrent() / 10 + 2;
                         if (can_air_surface) {
@@ -145,7 +145,7 @@ public class Jplayer extends Jobject{
                         else{
                             player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(Math.pow(getremaincurrent()+1,0.5)/5));
                         }
-                        player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
+                        player.getWorld().playSound(player, Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
                         player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
                         curseenergy -= getremaincurrent() / 10 + 2;
                         if (can_air_surface) {
@@ -159,7 +159,7 @@ public class Jplayer extends Jobject{
                     PaperJJK.potionpower(player,PotionEffectType.STRENGTH,100000000,0,true);
                     PaperJJK.potionpower(player,PotionEffectType.JUMP_BOOST,40000, 0,true);
                     player.setVelocity(player.getEyeLocation().getDirection().normalize().multiply(5));
-                    player.getWorld().playSound(player.getLocation(), Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
+                    player.getWorld().playSound(player, Sound.ENTITY_EVOKER_CAST_SPELL, SoundCategory.PLAYERS, 3F, 1.5F);
                     player.getWorld().spawnParticle(Particle.CLOUD, player.getLocation(), 15, 2, 2, 2, 0.3);
                     if (can_air_surface) {
                         player.setAllowFlight(true);

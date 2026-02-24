@@ -14,7 +14,6 @@ import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.Messenger;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.potion.PotionEffectTypeCategory;
 import org.bukkit.scoreboard.Scoreboard;
 import org.bukkit.scoreboard.ScoreboardManager;
 import org.bukkit.util.Vector;
@@ -169,15 +168,19 @@ public final class PaperJJK extends JavaPlugin {
         if(attacker_jobject!=null && attacker.getEquipment().getItemInMainHand().isEmpty()){
             if(attacker_jobject.curseenergy>200){
                 if(Math.random()<=attacker_jobject.black_flash_num){
+                    attacker_jobject.zone_count++;
                     attacker_jobject.black_flash_tick=20*60;
+                    attacker_jobject.black_flash_num = attacker_jobject.zone_black_flash_num+(Math.random()-0.5)*0.1;
                     attacker_jobject.curseenergy+=(attacker_jobject.max_curseenergy-attacker_jobject.curseenergy)*0.2;
                     double distances = attacker.getEyeLocation().distance(victim.getLocation());
+
+                    attacker.getWorld().playSound(attacker.getEyeLocation(), Sound.ENTITY_WARDEN_SONIC_BOOM, 3, 1);
                     victim.getLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.9)).createExplosion(attacker,2,false,rule_breakblock);
                     victim.setVelocity(victim.getVelocity().add(attacker.getEyeLocation().getDirection().multiply(3+Math.log10(attacker_jobject.curseenergy)*0.5)));
                     attacker.getWorld().spawnParticle(
                             Particle.FLASH,
                             attacker.getEyeLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.7)),
-                            10,
+                            10+attacker_jobject.zone_count*5,
                             2.0, 2.0, 2.0,
                             10.0,
                             Color.fromARGB(128, 255, 255, 255)
@@ -185,7 +188,7 @@ public final class PaperJJK extends JavaPlugin {
                     attacker.getWorld().spawnParticle(
                             Particle.FLASH,
                             attacker.getEyeLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.7)),
-                            1,
+                            1+attacker_jobject.zone_count,
                             0.5, 0.5, 0.5,
                             1.0,
                             Color.fromARGB(128, 255, 255, 255)
@@ -193,12 +196,16 @@ public final class PaperJJK extends JavaPlugin {
                     attacker.getWorld().spawnParticle(
                             Particle.FLASH,
                             attacker.getEyeLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.7)),
-                            10,
+                            10+attacker_jobject.zone_count*5,
                             2.0, 2.0, 2.0,
                             10.0,
                             Color.fromARGB(128, 255, 50, 50)
                     );
                     return true;
+                }
+                else {
+                    attacker_jobject.zone_count=0;
+                    attacker_jobject.black_flash_num = attacker_jobject.basic_black_flash_num;
                 }
             }
         }
@@ -321,6 +328,7 @@ class manage implements Runnable{
         tick++;
         // Tick simple domain power for all players
         SimpleDomainManager.tick();
+        Particle.DustOptions reverse_dust=new Particle.DustOptions(Color.WHITE, 0.3F);
         if(tick%20==0){
             for(Jobject jobject : PaperJJK.jobjects){
                 if(jobject.user instanceof LivingEntity living){
@@ -365,25 +373,8 @@ class manage implements Runnable{
             }
             else if(jobject instanceof Jplayer jplayer) {
                 if (tick % 5 == 0) {
-                    if (jplayer.reversecursing) {
-                        if(jplayer.player.isSneaking()){
-                            if (jplayer.curseenergy > 0) {
-                                jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH,1, (int) Math.pow(jplayer.getremaincurrent(),0.1)));
-                                List<PotionEffect> potionEffects = (List<PotionEffect>) jplayer.player.getActivePotionEffects();
-                                for (PotionEffect potionEffect : potionEffects) {
-                                    PotionEffectType pet = potionEffect.getType();
-                                    if (pet.getCategory().equals(PotionEffectTypeCategory.HARMFUL)) {
-                                        jplayer.player.removePotionEffect(potionEffect.getType());
-                                        jplayer.player.addPotionEffect(potionEffect.withDuration(potionEffect.getDuration() - jplayer.getremaincurrent() / 100));
-                                    }
-                                }
-                                jplayer.curseenergy -= jplayer.getremaincurrent();
-                            }
-                        }
-                        else {
-                            jplayer.reversecursing=false;
-                        }
-                    }
+                    jplayer.reverseCurse(tick);
+
                     if (jplayer.reversecursing_out) {
                         if (jplayer.curseenergy > 0) {
                             if (jplayer.player.isSneaking()) {

@@ -3,13 +3,19 @@ package org.justheare.paperJJK;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
+import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
 import org.bukkit.util.Vector;
 import org.justheare.paperJJK.network.JPacketSender;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Simple Domain (간이영역) Manager
@@ -29,6 +35,7 @@ public class SimpleDomainManager {
     private static final double MAX_RADIUS = 10.0;    // Maximum circle radius at 100% power (blocks)
     private static final int EXPANSION_DELAY = 100;
     private static final int MAX_POWER = 230;
+    private static final double SUBSCRIBER_RANGE = MAX_RADIUS * 5; // 50 blocks
     // Particle animation
     private static double particleAngle = 0.0; // Current rotation angle for particle circle
     /**
@@ -38,6 +45,7 @@ public class SimpleDomainManager {
         public boolean charging = false;
         public double power = 0.0; // 0-100%
         public Location location;
+        public Set<UUID> subscribers = new HashSet<>();
 
         public SimpleDomainData() {
             this.charging = false;
@@ -51,13 +59,16 @@ public class SimpleDomainManager {
     public static void startCharging(Player player) {
         SimpleDomainData data = getOrCreate(player);
         data.charging = true;
+        UUID casterUid = player.getUniqueId();
         PaperJJK.log(String.format("[Simple Domain] %s: Charging started", player.getName()));
         if(data.power==0){
             // Fresh start: record caster position and notify client
             data.location = player.getLocation();
-            JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER);
+            JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER, casterUid);
         }
-        JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER);
+        JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER, casterUid);
+        // Notify existing subscribers that charging has resumed (power > 0 case)
+        forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainActivate(p, data.location, data.power, EXPANSION_DELAY, MAX_POWER, casterUid));
     }
 
     /**
@@ -66,21 +77,26 @@ public class SimpleDomainManager {
     public static void endCharging(Player player) {
         SimpleDomainData data = getOrCreate(player);
         data.charging = false;
+        UUID casterUid = player.getUniqueId();
         PaperJJK.log(String.format("[Simple Domain] %s: Charging stopped", player.getName()));
         // Notify client so it can start local decay simulation
-
-        JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location);
-
+        JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location, casterUid);
+        forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainChargingEnd(p, data.power, data.location, casterUid));
     }
+
     public static void shutdown(Player player){
         SimpleDomainData data = getOrCreate(player);
         data.charging = false;
+        UUID casterUid = player.getUniqueId();
         PaperJJK.log(String.format("[Simple Domain] %s: Shutdown", player.getName()));
         if (data.power > 0) {
             data.power = 0.0;
-            JPacketSender.sendSimpleDomainDeactivate(player);
+            JPacketSender.sendSimpleDomainDeactivate(player, casterUid);
+            forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainDeactivate(p, casterUid));
+            data.subscribers.clear();
         }
     }
+
     /**
      * Tick all players' simple domain power
      * Called every game tick (20 times per second)
@@ -95,28 +111,40 @@ public class SimpleDomainManager {
             if (player == null || !player.isOnline()) {
                 continue;
             }
+            UUID casterUid = player.getUniqueId();
+
             if (data.charging) {
                 // Stop charging if player stops sneaking
                 if (!player.isSneaking()) {
                     data.charging = false;
-                    JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location);
+                    JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location, casterUid);
+                    forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainChargingEnd(p, data.power, data.location, casterUid));
                 } else {
                     // Charging: Increase power
                     Vector loc_direction = player.getLocation().toVector().add(data.location.toVector().multiply(-1));
                     double speed = Math.min(loc_direction.length(),0.1);
-                    data.location.add(loc_direction.normalize().multiply(speed));
+                    if(speed>0.01){
+                        data.location.add(loc_direction.normalize().multiply(speed));
+                    }
                     data.power = Math.min(MAX_POWER, data.power + CHARGE_RATE);
                     Jplayer jplayer = getJplayer(player);
                     if(jplayer!=null){
                         jplayer.curseenergy -= (int) (data.power/10);
                         if(jplayer.curseenergy<=0){
                             data.charging = false;
-                            JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location);
+                            JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location, casterUid);
+                            forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainChargingEnd(p, data.power, data.location, casterUid));
                         }
                     }
-
                 }
-            } else if (data.power > 0) {
+                //sound
+                player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,1, 1));
+                if(data.power<=MAX_POWER-1 && Math.random()<0.5){
+                    player.getWorld().playSound(player, Sound.BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM, (float) (data.power/MAX_POWER)/2+0.1f, (float) (data.power/MAX_POWER)+0.5f);
+                }
+
+            }
+            else if (data.power > 0) {
                 // Not charging: Decrease power
                 // Base decay + additional decay from opponent's barrier technique level
                 double prevPower = data.power;
@@ -126,7 +154,9 @@ public class SimpleDomainManager {
                 }
                 // Detect transition to 0 and notify client
                 if (data.power == 0.0 && prevPower > 0.0) {
-                    JPacketSender.sendSimpleDomainDeactivate(player);
+                    JPacketSender.sendSimpleDomainDeactivate(player, casterUid);
+                    forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainDeactivate(p, casterUid));
+                    data.subscribers.clear();
                 }
             }
 
@@ -143,11 +173,15 @@ public class SimpleDomainManager {
                 ylocation.setY(player.getLocation().getY());
                 if(player.getLocation().distance(ylocation)>radius){
                     data.power = Math.max(0.0, data.power - BASE_DECAY_RATE*5);
-                    JPacketSender.sendSimpleDomainPowerSync(player, data.power);
+                    JPacketSender.sendSimpleDomainPowerSync(player, data.power, casterUid);
+                    final double syncPower = data.power;
+                    forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainPowerSync(p, syncPower, casterUid));
                 }
 
                 showParticleEffect(player, Math.max(data.power - EXPANSION_DELAY,0.0),data.location);
 
+                // Update subscriber list: new entrants get ACTIVATE, leavers get DEACTIVATE
+                updateSubscribers(player, data);
             }
             else {
                 // power == 0, domain inactive — nothing to render
@@ -170,17 +204,24 @@ public class SimpleDomainManager {
     public static boolean isActive(Player player) {
         return getPower(player) >= EXPANSION_DELAY;
     }
+
     public static void decreasePower(Player player, int level){
         SimpleDomainData data = playerData.get(player.getUniqueId());
         if (data == null) return;
+        UUID casterUid = player.getUniqueId();
         double prevPower = data.power;
         data.power = Math.max(0, data.power - (((double) level) / 7.0));
         if (data.power == 0.0 && prevPower > 0.0) {
-            JPacketSender.sendSimpleDomainDeactivate(player);
+            JPacketSender.sendSimpleDomainDeactivate(player, casterUid);
+            forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainDeactivate(p, casterUid));
+            data.subscribers.clear();
         } else if (data.power != prevPower) {
-            JPacketSender.sendSimpleDomainPowerSync(player, data.power);
+            JPacketSender.sendSimpleDomainPowerSync(player, data.power, casterUid);
+            final double syncPower = data.power;
+            forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainPowerSync(p, syncPower, casterUid));
         }
     }
+
     /**
      * Check if player is currently charging
      */
@@ -193,6 +234,12 @@ public class SimpleDomainManager {
      * Cleanup player data (called on disconnect)
      */
     public static void cleanup(Player player) {
+        SimpleDomainData data = playerData.get(player.getUniqueId());
+        if (data != null && data.power > 0) {
+            UUID casterUid = player.getUniqueId();
+            forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainDeactivate(p, casterUid));
+            data.subscribers.clear();
+        }
         playerData.remove(player.getUniqueId());
         PaperJJK.log(String.format("[Simple Domain] %s: Data cleaned up", player.getName()));
     }
@@ -202,6 +249,57 @@ public class SimpleDomainManager {
      */
     private static SimpleDomainData getOrCreate(Player player) {
         return playerData.computeIfAbsent(player.getUniqueId(), k -> new SimpleDomainData());
+    }
+
+    /**
+     * Calls action for each online subscriber, removing offline players from the set.
+     */
+    private static void forEachSubscriber(SimpleDomainData data, Consumer<Player> action) {
+        data.subscribers.removeIf(uid -> {
+            Player p = Bukkit.getPlayer(uid);
+            if (p == null || !p.isOnline()) return true;
+            action.accept(p);
+            return false;
+        });
+    }
+
+    /**
+     * Updates the subscriber set each tick:
+     * - Players who entered range → send ACTIVATE with current state
+     * - Players who left range  → send DEACTIVATE
+     */
+    private static void updateSubscribers(Player caster, SimpleDomainData data) {
+        if (data.location == null) return;
+        UUID casterUid = caster.getUniqueId();
+        Set<UUID> inRange = new HashSet<>();
+        for (Player p : caster.getWorld().getPlayers()) {
+            if (p.equals(caster)) continue;
+            if (p.getLocation().distance(data.location) <= SUBSCRIBER_RANGE) {
+                inRange.add(p.getUniqueId());
+            }
+        }
+
+        // New entrants → ACTIVATE with current state
+        for (UUID uid : inRange) {
+            if (!data.subscribers.contains(uid)) {
+                Player p = Bukkit.getPlayer(uid);
+                if (p != null && p.isOnline()) {
+                    JPacketSender.sendSimpleDomainActivate(p, data.location, data.power, EXPANSION_DELAY, MAX_POWER, casterUid);
+                }
+            }
+        }
+
+        // Leavers → DEACTIVATE
+        for (UUID uid : data.subscribers) {
+            if (!inRange.contains(uid)) {
+                Player p = Bukkit.getPlayer(uid);
+                if (p != null && p.isOnline()) {
+                    JPacketSender.sendSimpleDomainDeactivate(p, casterUid);
+                }
+            }
+        }
+
+        data.subscribers = inRange;
     }
 
     /**

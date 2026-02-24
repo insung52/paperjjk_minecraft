@@ -1,12 +1,12 @@
 package org.justheare.paperJJK;
 
-import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
-import org.bukkit.Color;
-import org.bukkit.Particle;
+import org.bukkit.*;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.potion.PotionEffect;
+import org.bukkit.potion.PotionEffectType;
+import org.bukkit.potion.PotionEffectTypeCategory;
 
 import javax.annotation.Nullable;
 import java.util.ArrayList;
@@ -24,7 +24,11 @@ public class Jobject {
     public boolean can_simple_domain = false;
     public boolean simple_domain_type = true;
     public Player player;
-    public double black_flash_num=0.01;
+    public double black_flash_num=0.1;
+    public double basic_black_flash_num=0.1;
+    public double zone_black_flash_num = 0.9;
+    public int zone_count = 0;
+    public boolean zone = false;
     public int black_flash_tick=0;
     public int max_curseenergy=5;
     public int curseenergy=1;
@@ -68,14 +72,44 @@ public class Jobject {
 
         }
     }
+    public void reverseCurse(int tick){
+        if (this instanceof Jplayer jplayer && reversecursing) {
+            if(player.isSneaking()){
+                if (curseenergy > 0) {
+
+
+                    if(tick%10==0){
+                        jplayer.player.getWorld().playSound(jplayer.player, Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 0.3F, 0.7f);
+                        jplayer.player.getWorld().playSound(jplayer.player, Sound.BLOCK_CONDUIT_AMBIENT, 0.3F, 1.0f);
+                    }
+                    jplayer.player.getWorld().spawnParticle(Particle.ENTITY_EFFECT, jplayer.player.getLocation(), 10, 0.5, 0.5, 0.5, 0.5,Color.WHITE);
+                    jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,1, 1));
+                    jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH,1, (int) Math.pow(jplayer.getremaincurrent(),0.1)));
+                    List<PotionEffect> potionEffects = (List<PotionEffect>) jplayer.player.getActivePotionEffects();
+                    for (PotionEffect potionEffect : potionEffects) {
+                        PotionEffectType pet = potionEffect.getType();
+                        if (pet.getCategory().equals(PotionEffectTypeCategory.HARMFUL)) {
+                            jplayer.player.removePotionEffect(potionEffect.getType());
+                            jplayer.player.addPotionEffect(potionEffect.withDuration(potionEffect.getDuration() - jplayer.getremaincurrent() / 100));
+                        }
+                    }
+                    jplayer.curseenergy -= jplayer.getremaincurrent();
+                }
+            }
+            else {
+                jplayer.reversecursing=false;
+            }
+        }
+    }
     public void black_flash(){
         black_flash_tick--;
         if(black_flash_tick>=20*59){
             double tick = (20*60 - black_flash_tick)*1.0;
+
             Particle.Spell spell = new Particle.Spell(Color.BLACK,1.0f);
-            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 10, tick, tick, tick, 0.5,spell);
+            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 10*zone_count, tick, tick, tick, 0.5,spell);
             spell = new Particle.Spell(Color.fromARGB(255, 128, 0, 0),1.0f);
-            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 10, tick, tick, tick, 0.5,spell);
+            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 10*zone_count, tick, tick, tick, 0.5,spell);
 
             user.getWorld().spawnParticle(
                     Particle.FLASH,
@@ -95,12 +129,19 @@ public class Jobject {
             );
 
         }
-        else{
-            if (curseenergy < max_curseenergy) {
-                curseenergy += max_curseenergy / 1000000 + 1;
-            }
-            //Particle.DustOptions dust=new Particle.DustOptions(Color.BLACK, 1);
-            user.getWorld().spawnParticle(Particle.ENTITY_EFFECT, user.getLocation(), 1, 0.5, 0.5, 0.5, 0.5,Color.BLACK);
+
+        if (curseenergy < max_curseenergy) {
+            curseenergy += max_curseenergy / 1000000 + 1;
+        }
+        //Particle.DustOptions dust=new Particle.DustOptions(Color.BLACK, 1);
+        user.getWorld().spawnParticle(Particle.ENTITY_EFFECT, user.getLocation(), 1, 0.5, 0.5, 0.5, 0.5,Color.BLACK);
+        if(black_flash_num>basic_black_flash_num){
+            black_flash_num = Math.max(black_flash_num-0.002,basic_black_flash_num);
+        }
+        //PaperJJK.log(black_flash_num + "");
+        if(black_flash_num>basic_black_flash_num&&black_flash_tick%55==40){
+
+            player.playSound(player, Sound.BLOCK_CONDUIT_AMBIENT, (float) (black_flash_num/zone_black_flash_num)*1.2F, 1.5f);
         }
     }
     public boolean use_domain(String[] values,boolean cancel){

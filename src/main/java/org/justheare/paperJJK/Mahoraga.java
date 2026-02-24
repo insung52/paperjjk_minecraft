@@ -175,10 +175,10 @@ public class Mahoraga extends Jujut{
         for(int r =0; r<adapt_list.size(); r++){
             adapt_list_num.set(r, adapt_list_num.get(r)/2);
         }
-        user.getWorld().playSound(user.getLocation(), Sound.BLOCK_ENDER_CHEST_OPEN,10F,0.8F);
-        user.getWorld().playSound(user.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_CLOSE_SHUTTER,10F,0.8F);
-        user.getWorld().playSound(user.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_DETECT_PLAYER,10F,0.7F);
-        user.getWorld().playSound(user.getLocation(), Sound.BLOCK_PISTON_CONTRACT,10F,0.5F);
+        user.getWorld().playSound(user, Sound.BLOCK_ENDER_CHEST_OPEN,10F,0.8F);
+        user.getWorld().playSound(user, Sound.BLOCK_TRIAL_SPAWNER_CLOSE_SHUTTER,10F,0.8F);
+        user.getWorld().playSound(user, Sound.BLOCK_TRIAL_SPAWNER_DETECT_PLAYER,10F,0.7F);
+        user.getWorld().playSound(user, Sound.BLOCK_PISTON_CONTRACT,10F,0.5F);
         jobject.curseenergy = 0;
         PaperJJK.log(target);
         jobject.infinity_stun_tick=0;

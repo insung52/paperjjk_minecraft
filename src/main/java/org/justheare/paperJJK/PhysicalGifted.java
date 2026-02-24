@@ -99,8 +99,8 @@ public class PhysicalGifted extends Jujut{
             }
             if(interact){
                 user.getWorld().spawnParticle(Particle.SWEEP_ATTACK,location,1,0.1,0.1,0.1,1);
-                user.getWorld().playSound(user.getLocation(), Sound.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 0.1F, (float) Math.min(1.5F+interact_value/10.0,2.0F));
-                user.getWorld().playSound(user.getLocation(), Sound.BLOCK_TRIAL_SPAWNER_OMINOUS_ACTIVATE, SoundCategory.PLAYERS, 0.1F, 2.0F);
+                user.getWorld().playSound(user, Sound.BLOCK_ANVIL_LAND, SoundCategory.PLAYERS, 0.1F, (float) Math.min(1.5F+interact_value/10.0,2.0F));
+                user.getWorld().playSound(user, Sound.BLOCK_TRIAL_SPAWNER_OMINOUS_ACTIVATE, SoundCategory.PLAYERS, 0.1F, 2.0F);
                 interact = false;
                 interact_value = 0;
             }

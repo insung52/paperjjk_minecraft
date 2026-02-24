@@ -554,9 +554,9 @@ public class JPacketSender {
     /**
      * SIMPLE_DOMAIN_ACTIVATE (0x21) - Domain activated
      * Sent when charging begins from power==0 (fresh start).
-     * Format: [packetId(1)][locX(8)][locY(8)][locZ(8)][power(8)][expansionDelay(4)][maxPower(4)]
+     * Format: [packetId(1)][locX(8)][locY(8)][locZ(8)][power(8)][expansionDelay(4)][maxPower(4)][casterUUIDMost(8)][casterUUIDLeast(8)]
      */
-    public static void sendSimpleDomainActivate(Player player, Location location, double power, int expansionDelay, int maxPower) {
+    public static void sendSimpleDomainActivate(Player player, Location location, double power, int expansionDelay, int maxPower, java.util.UUID casterUuid) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.SIMPLE_DOMAIN_ACTIVATE);
@@ -566,12 +566,14 @@ public class JPacketSender {
             out.writeDouble(power);
             out.writeInt(expansionDelay);
             out.writeInt(maxPower);
+            out.writeLong(casterUuid.getMostSignificantBits());
+            out.writeLong(casterUuid.getLeastSignificantBits());
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] SIMPLE_DOMAIN_ACTIVATE → %s: loc=(%.2f,%.2f,%.2f), power=%.1f, expansionDelay=%d, maxPower=%d",
-                    player.getName(), location.getX(), location.getY(), location.getZ(), power, expansionDelay, maxPower));
+            logger.info(String.format("[Packet Send] SIMPLE_DOMAIN_ACTIVATE → %s: loc=(%.2f,%.2f,%.2f), power=%.1f, expansionDelay=%d, maxPower=%d, caster=%s",
+                    player.getName(), location.getX(), location.getY(), location.getZ(), power, expansionDelay, maxPower, casterUuid));
         } catch (Exception e) {
             logger.severe(String.format("SIMPLE_DOMAIN_ACTIVATE packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -583,9 +585,9 @@ public class JPacketSender {
      * SIMPLE_DOMAIN_CHARGING_END (0x22) - Charging stopped, power preserved
      * Sent when the player stops sneaking (or CE runs out) while charging.
      * Client will simulate local decay at 0.5%/tick from this value.
-     * Format: [packetId(1)][power(8)][locX(8)][locY(8)][locZ(8)]
+     * Format: [packetId(1)][power(8)][locX(8)][locY(8)][locZ(8)][casterUUIDMost(8)][casterUUIDLeast(8)]
      */
-    public static void sendSimpleDomainChargingEnd(Player player, double power, Location location) {
+    public static void sendSimpleDomainChargingEnd(Player player, double power, Location location, java.util.UUID casterUuid) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.SIMPLE_DOMAIN_CHARGING_END);
@@ -593,6 +595,8 @@ public class JPacketSender {
             out.writeDouble(location.getX());
             out.writeDouble(location.getY());
             out.writeDouble(location.getZ());
+            out.writeLong(casterUuid.getMostSignificantBits());
+            out.writeLong(casterUuid.getLeastSignificantBits());
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
@@ -610,13 +614,15 @@ public class JPacketSender {
      * SIMPLE_DOMAIN_POWER_SYNC (0x23) - Power correction
      * Sent after external power reduction (e.g. decreasePower from opponent's domain level).
      * Client overwrites its locally-simulated power with this authoritative value.
-     * Format: [packetId(1)][power(8)]
+     * Format: [packetId(1)][power(8)][casterUUIDMost(8)][casterUUIDLeast(8)]
      */
-    public static void sendSimpleDomainPowerSync(Player player, double power) {
+    public static void sendSimpleDomainPowerSync(Player player, double power, java.util.UUID casterUuid) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.SIMPLE_DOMAIN_POWER_SYNC);
             out.writeDouble(power);
+            out.writeLong(casterUuid.getMostSignificantBits());
+            out.writeLong(casterUuid.getLeastSignificantBits());
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
@@ -632,12 +638,14 @@ public class JPacketSender {
 
     /**
      * SIMPLE_DOMAIN_DEACTIVATE (0x24) - Domain deactivated (power reached 0)
-     * Format: [packetId(1)]  (no payload)
+     * Format: [packetId(1)][casterUUIDMost(8)][casterUUIDLeast(8)]
      */
-    public static void sendSimpleDomainDeactivate(Player player) {
+    public static void sendSimpleDomainDeactivate(Player player, java.util.UUID casterUuid) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.SIMPLE_DOMAIN_DEACTIVATE);
+            out.writeLong(casterUuid.getMostSignificantBits());
+            out.writeLong(casterUuid.getLeastSignificantBits());
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
