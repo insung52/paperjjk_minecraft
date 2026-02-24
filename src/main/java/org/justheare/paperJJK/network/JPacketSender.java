@@ -554,9 +554,9 @@ public class JPacketSender {
     /**
      * SIMPLE_DOMAIN_ACTIVATE (0x21) - Domain activated
      * Sent when charging begins from power==0 (fresh start).
-     * Format: [packetId(1)][locX(8)][locY(8)][locZ(8)][power(8)]
+     * Format: [packetId(1)][locX(8)][locY(8)][locZ(8)][power(8)][expansionDelay(4)][maxPower(4)]
      */
-    public static void sendSimpleDomainActivate(Player player, Location location, double power, int expansionDelay) {
+    public static void sendSimpleDomainActivate(Player player, Location location, double power, int expansionDelay, int maxPower) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.SIMPLE_DOMAIN_ACTIVATE);
@@ -565,12 +565,13 @@ public class JPacketSender {
             out.writeDouble(location.getZ());
             out.writeDouble(power);
             out.writeInt(expansionDelay);
+            out.writeInt(maxPower);
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] SIMPLE_DOMAIN_ACTIVATE → %s: loc=(%.2f,%.2f,%.2f), power=%.1f, expansionDelay=%d",
-                    player.getName(), location.getX(), location.getY(), location.getZ(), power, expansionDelay));
+            logger.info(String.format("[Packet Send] SIMPLE_DOMAIN_ACTIVATE → %s: loc=(%.2f,%.2f,%.2f), power=%.1f, expansionDelay=%d, maxPower=%d",
+                    player.getName(), location.getX(), location.getY(), location.getZ(), power, expansionDelay, maxPower));
         } catch (Exception e) {
             logger.severe(String.format("SIMPLE_DOMAIN_ACTIVATE packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -582,19 +583,22 @@ public class JPacketSender {
      * SIMPLE_DOMAIN_CHARGING_END (0x22) - Charging stopped, power preserved
      * Sent when the player stops sneaking (or CE runs out) while charging.
      * Client will simulate local decay at 0.5%/tick from this value.
-     * Format: [packetId(1)][power(8)]
+     * Format: [packetId(1)][power(8)][locX(8)][locY(8)][locZ(8)]
      */
-    public static void sendSimpleDomainChargingEnd(Player player, double power) {
+    public static void sendSimpleDomainChargingEnd(Player player, double power, Location location) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.SIMPLE_DOMAIN_CHARGING_END);
             out.writeDouble(power);
+            out.writeDouble(location.getX());
+            out.writeDouble(location.getY());
+            out.writeDouble(location.getZ());
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] SIMPLE_DOMAIN_CHARGING_END → %s: power=%.1f",
-                    player.getName(), power));
+            logger.info(String.format("[Packet Send] SIMPLE_DOMAIN_CHARGING_END → %s: power=%.1f, loc=(%.2f,%.2f,%.2f)",
+                    player.getName(), power, location.getX(), location.getY(), location.getZ()));
         } catch (Exception e) {
             logger.severe(String.format("SIMPLE_DOMAIN_CHARGING_END packet send failed (%s): %s",
                     player.getName(), e.getMessage()));

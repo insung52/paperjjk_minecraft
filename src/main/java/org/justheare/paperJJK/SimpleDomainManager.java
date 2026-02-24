@@ -4,6 +4,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Particle;
 import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 import org.justheare.paperJJK.network.JPacketSender;
 
 import java.util.HashMap;
@@ -54,8 +55,9 @@ public class SimpleDomainManager {
         if(data.power==0){
             // Fresh start: record caster position and notify client
             data.location = player.getLocation();
-            JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY);
+            JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER);
         }
+        JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER);
     }
 
     /**
@@ -67,7 +69,7 @@ public class SimpleDomainManager {
         PaperJJK.log(String.format("[Simple Domain] %s: Charging stopped", player.getName()));
         // Notify client so it can start local decay simulation
 
-        JPacketSender.sendSimpleDomainChargingEnd(player, data.power);
+        JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location);
 
     }
     public static void shutdown(Player player){
@@ -97,16 +99,19 @@ public class SimpleDomainManager {
                 // Stop charging if player stops sneaking
                 if (!player.isSneaking()) {
                     data.charging = false;
-                    JPacketSender.sendSimpleDomainChargingEnd(player, data.power);
+                    JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location);
                 } else {
                     // Charging: Increase power
+                    Vector loc_direction = player.getLocation().toVector().add(data.location.toVector().multiply(-1));
+                    double speed = Math.min(loc_direction.length(),0.1);
+                    data.location.add(loc_direction.normalize().multiply(speed));
                     data.power = Math.min(MAX_POWER, data.power + CHARGE_RATE);
                     Jplayer jplayer = getJplayer(player);
                     if(jplayer!=null){
                         jplayer.curseenergy -= (int) (data.power/10);
                         if(jplayer.curseenergy<=0){
                             data.charging = false;
-                            JPacketSender.sendSimpleDomainChargingEnd(player, data.power);
+                            JPacketSender.sendSimpleDomainChargingEnd(player, data.power, data.location);
                         }
                     }
 
@@ -116,6 +121,9 @@ public class SimpleDomainManager {
                 // Base decay + additional decay from opponent's barrier technique level
                 double prevPower = data.power;
                 data.power = Math.max(0.0, data.power - BASE_DECAY_RATE);
+                if(data.power<EXPANSION_DELAY){
+                    data.power = Math.max(0.0, data.power - CHARGE_RATE);
+                }
                 // Detect transition to 0 and notify client
                 if (data.power == 0.0 && prevPower > 0.0) {
                     JPacketSender.sendSimpleDomainDeactivate(player);
@@ -130,7 +138,16 @@ public class SimpleDomainManager {
 
             // Show particle effects if active
             if (data.power >= 1.0) {
-                showParticleEffect(player, data.power-EXPANSION_DELAY,data.location);
+                double radius = (Math.max(data.power - EXPANSION_DELAY,0.0) / (MAX_POWER - EXPANSION_DELAY)) * MAX_RADIUS;
+                Location ylocation = data.location.clone();
+                ylocation.setY(player.getLocation().getY());
+                if(player.getLocation().distance(ylocation)>radius){
+                    data.power = Math.max(0.0, data.power - BASE_DECAY_RATE*5);
+                    JPacketSender.sendSimpleDomainPowerSync(player, data.power);
+                }
+
+                showParticleEffect(player, Math.max(data.power - EXPANSION_DELAY,0.0),data.location);
+
             }
             else {
                 // power == 0, domain inactive — nothing to render
@@ -202,7 +219,7 @@ public class SimpleDomainManager {
 
         if(jplayer.simple_domain_type) {
             // Calculate radius based on power (0-100% → 0-MAX_RADIUS blocks)
-            double radius = (power / MAX_POWER) * MAX_RADIUS;
+            double radius = (power / (MAX_POWER - EXPANSION_DELAY)) * MAX_RADIUS;
 
             // Rotate angle for spinning effect
             particleAngle += Math.PI / 24.0; // Rotate ~9 degrees per tick
