@@ -554,9 +554,13 @@ public class JPacketSender {
     /**
      * SIMPLE_DOMAIN_ACTIVATE (0x21) - Domain activated
      * Sent when charging begins from power==0 (fresh start).
-     * Format: [packetId(1)][locX(8)][locY(8)][locZ(8)][power(8)][expansionDelay(4)][maxPower(4)][casterUUIDMost(8)][casterUUIDLeast(8)]
+     * Format: [packetId(1)][locX(8)][locY(8)][locZ(8)][power(8)][expansionDelay(4)][maxPower(4)]
+     *         [chargeRate(8)][baseDecayRate(8)][maxRadius(8)][casterUUIDMost(8)][casterUUIDLeast(8)]
      */
-    public static void sendSimpleDomainActivate(Player player, Location location, double power, int expansionDelay, int maxPower, java.util.UUID casterUuid) {
+    public static void sendSimpleDomainActivate(Player player, Location location, double power,
+                                                int expansionDelay, int maxPower,
+                                                double chargeRate, double baseDecayRate, double maxRadius,
+                                                java.util.UUID casterUuid) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.SIMPLE_DOMAIN_ACTIVATE);
@@ -566,14 +570,17 @@ public class JPacketSender {
             out.writeDouble(power);
             out.writeInt(expansionDelay);
             out.writeInt(maxPower);
+            out.writeDouble(chargeRate);
+            out.writeDouble(baseDecayRate);
+            out.writeDouble(maxRadius);
             out.writeLong(casterUuid.getMostSignificantBits());
             out.writeLong(casterUuid.getLeastSignificantBits());
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.info(String.format("[Packet Send] SIMPLE_DOMAIN_ACTIVATE → %s: loc=(%.2f,%.2f,%.2f), power=%.1f, expansionDelay=%d, maxPower=%d, caster=%s",
-                    player.getName(), location.getX(), location.getY(), location.getZ(), power, expansionDelay, maxPower, casterUuid));
+            logger.info(String.format("[Packet Send] SIMPLE_DOMAIN_ACTIVATE → %s: loc=(%.2f,%.2f,%.2f), power=%.1f, expansionDelay=%d, maxPower=%d, chargeRate=%.1f, decayRate=%.1f, maxRadius=%.1f, caster=%s",
+                    player.getName(), location.getX(), location.getY(), location.getZ(), power, expansionDelay, maxPower, chargeRate, baseDecayRate, maxRadius, casterUuid));
         } catch (Exception e) {
             logger.severe(String.format("SIMPLE_DOMAIN_ACTIVATE packet send failed (%s): %s",
                     player.getName(), e.getMessage()));
@@ -614,21 +621,24 @@ public class JPacketSender {
      * SIMPLE_DOMAIN_POWER_SYNC (0x23) - Power correction
      * Sent after external power reduction (e.g. decreasePower from opponent's domain level).
      * Client overwrites its locally-simulated power with this authoritative value.
-     * Format: [packetId(1)][power(8)][casterUUIDMost(8)][casterUUIDLeast(8)]
+     * Format: [packetId(1)][power(8)][spawnParticles(1)][casterUUIDMost(8)][casterUUIDLeast(8)]
+     *
+     * @param spawnParticles true → client spawns crumble particles; false → silent sync (e.g. out-of-range penalty)
      */
-    public static void sendSimpleDomainPowerSync(Player player, double power, java.util.UUID casterUuid) {
+    public static void sendSimpleDomainPowerSync(Player player, double power, boolean spawnParticles, java.util.UUID casterUuid) {
         try {
             ByteArrayDataOutput out = ByteStreams.newDataOutput();
             out.writeByte(PacketIds.SIMPLE_DOMAIN_POWER_SYNC);
             out.writeDouble(power);
+            out.writeBoolean(spawnParticles);
             out.writeLong(casterUuid.getMostSignificantBits());
             out.writeLong(casterUuid.getLeastSignificantBits());
 
             player.sendPluginMessage(player.getServer().getPluginManager().getPlugin("PaperJJK"),
                     CHANNEL, out.toByteArray());
 
-            logger.fine(String.format("[Packet Send] SIMPLE_DOMAIN_POWER_SYNC → %s: power=%.1f",
-                    player.getName(), power));
+            logger.fine(String.format("[Packet Send] SIMPLE_DOMAIN_POWER_SYNC → %s: power=%.1f, particles=%b",
+                    player.getName(), power, spawnParticles));
         } catch (Exception e) {
             logger.severe(String.format("SIMPLE_DOMAIN_POWER_SYNC packet send failed (%s): %s",
                     player.getName(), e.getMessage()));

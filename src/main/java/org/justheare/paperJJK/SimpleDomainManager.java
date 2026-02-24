@@ -30,7 +30,7 @@ public class SimpleDomainManager {
     private static final Map<UUID, SimpleDomainData> playerData = new HashMap<>();
 
     // Configuration
-    private static final double CHARGE_RATE = 10.0;    // Power increase per tick when charging (1% per tick = 5 seconds to 100%)
+    private static final double CHARGE_RATE = 7.0;    // Power increase per tick when charging (1% per tick = 5 seconds to 100%)
     private static final double BASE_DECAY_RATE = 0.8; // Base power decrease per tick when not charging (0.5% per tick = 10 seconds to 0%)
     private static final double MAX_RADIUS = 10.0;    // Maximum circle radius at 100% power (blocks)
     private static final int EXPANSION_DELAY = 100;
@@ -59,16 +59,17 @@ public class SimpleDomainManager {
     public static void startCharging(Player player) {
         SimpleDomainData data = getOrCreate(player);
         data.charging = true;
+        chargingfinishtick=7;
         UUID casterUid = player.getUniqueId();
         PaperJJK.log(String.format("[Simple Domain] %s: Charging started", player.getName()));
         if(data.power==0){
             // Fresh start: record caster position and notify client
             data.location = player.getLocation();
-            JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER, casterUid);
+            JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER, CHARGE_RATE, BASE_DECAY_RATE, MAX_RADIUS, casterUid);
         }
-        JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER, casterUid);
+        JPacketSender.sendSimpleDomainActivate(player, data.location, data.power, EXPANSION_DELAY, MAX_POWER, CHARGE_RATE, BASE_DECAY_RATE, MAX_RADIUS, casterUid);
         // Notify existing subscribers that charging has resumed (power > 0 case)
-        forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainActivate(p, data.location, data.power, EXPANSION_DELAY, MAX_POWER, casterUid));
+        forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainActivate(p, data.location, data.power, EXPANSION_DELAY, MAX_POWER, CHARGE_RATE, BASE_DECAY_RATE, MAX_RADIUS, casterUid));
     }
 
     /**
@@ -101,6 +102,7 @@ public class SimpleDomainManager {
      * Tick all players' simple domain power
      * Called every game tick (20 times per second)
      */
+    static int chargingfinishtick=0;
     public static void tick() {
         for (Map.Entry<UUID, SimpleDomainData> entry : playerData.entrySet()) {
             UUID uuid = entry.getKey();
@@ -139,10 +141,16 @@ public class SimpleDomainManager {
                 }
                 //sound
                 player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,1, 1));
-                if(data.power<=MAX_POWER-1 && Math.random()<0.5){
-                    player.getWorld().playSound(player, Sound.BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM, (float) (data.power/MAX_POWER)/2+0.1f, (float) (data.power/MAX_POWER)+0.5f);
+                if(data.power<=MAX_POWER-1){
+                    showExpandParticleEffect(player,Math.max(data.power - EXPANSION_DELAY,0.2),data.location);
+                    if(Math.random()<0.5){
+                        player.getWorld().playSound(player, Sound.BLOCK_TRIAL_SPAWNER_ABOUT_TO_SPAWN_ITEM, (float) (data.power/MAX_POWER)/2+0.1f, (float) (data.power/MAX_POWER)+0.5f);
+                    }
                 }
-
+                else if(chargingfinishtick>0){
+                    chargingfinishtick--;
+                    showExpandParticleEffect(player,Math.max(data.power - EXPANSION_DELAY,0.2),data.location);
+                }
             }
             else if (data.power > 0) {
                 // Not charging: Decrease power
@@ -173,11 +181,7 @@ public class SimpleDomainManager {
                 ylocation.setY(player.getLocation().getY());
                 if(player.getLocation().distance(ylocation)>radius){
                     data.power = Math.max(0.0, data.power - BASE_DECAY_RATE);
-                    if(Math.random()<0.5){
-                        JPacketSender.sendSimpleDomainPowerSync(player, data.power, casterUid);
-                    }
-                    final double syncPower = data.power;
-                    forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainPowerSync(p, syncPower, casterUid));
+                    JPacketSender.sendSimpleDomainPowerSync(player, data.power, false, casterUid);
                 }
 
                 showParticleEffect(player, Math.max(data.power - EXPANSION_DELAY,0.0),data.location);
@@ -212,15 +216,23 @@ public class SimpleDomainManager {
         if (data == null) return;
         UUID casterUid = player.getUniqueId();
         double prevPower = data.power;
+        if(data.power>0){
+            double circleRadius = (Math.max(data.power - EXPANSION_DELAY, 0.0) / (MAX_POWER - EXPANSION_DELAY)) * MAX_RADIUS;
+            double soundAngle = Math.random() * 2.0 * Math.PI;
+            double sx = data.location.getX() + circleRadius * Math.cos(soundAngle);
+            double sz = data.location.getZ() + circleRadius * Math.sin(soundAngle);
+            Location soundLoc = new Location(data.location.getWorld(), sx, data.location.getY(), sz);
+            data.location.getWorld().playSound(soundLoc, Sound.BLOCK_GLASS_BREAK, 0.3f, 1.1f);
+        }
         data.power = Math.max(0, data.power - (((double) level) / 7.0));
         if (data.power == 0.0 && prevPower > 0.0) {
             JPacketSender.sendSimpleDomainDeactivate(player, casterUid);
             forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainDeactivate(p, casterUid));
             data.subscribers.clear();
         } else if (data.power != prevPower) {
-            JPacketSender.sendSimpleDomainPowerSync(player, data.power, casterUid);
+            JPacketSender.sendSimpleDomainPowerSync(player, data.power, true, casterUid);
             final double syncPower = data.power;
-            forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainPowerSync(p, syncPower, casterUid));
+            forEachSubscriber(data, p -> JPacketSender.sendSimpleDomainPowerSync(p, syncPower, true, casterUid));
         }
     }
 
@@ -286,7 +298,7 @@ public class SimpleDomainManager {
             if (!data.subscribers.contains(uid)) {
                 Player p = Bukkit.getPlayer(uid);
                 if (p != null && p.isOnline()) {
-                    JPacketSender.sendSimpleDomainActivate(p, data.location, data.power, EXPANSION_DELAY, MAX_POWER, casterUid);
+                    JPacketSender.sendSimpleDomainActivate(p, data.location, data.power, EXPANSION_DELAY, MAX_POWER, CHARGE_RATE, BASE_DECAY_RATE, MAX_RADIUS, casterUid);
                 }
             }
         }
@@ -310,45 +322,72 @@ public class SimpleDomainManager {
      * - Circle radius scales with power (0-100% → 0-10 blocks)
      * - Circle is drawn at ground level (player's feet)
      */
+    private static void showExpandParticleEffect(Player player,double power, Location center){
+        Jplayer jplayer = getJplayer(player);
+        if (jplayer == null) {
+            return;
+        }
+        if(jplayer.simple_domain_type) {
+            // Radius scales with power above expansionDelay
+            double radius = Math.max(0.5, (power / (MAX_POWER - EXPANSION_DELAY)) * MAX_RADIUS);
+
+            // Advance rotation angle each tick (~7.5°/tick)
+            particleAngle += Math.PI / 24.0;
+            if (particleAngle >= 2 * Math.PI) particleAngle -= 2 * Math.PI;
+
+            // Sample candidates around the ring: ~2.5 per block of circumference
+            int samples = Math.max(20, (int)(2 * Math.PI * radius * 2.5));
+
+            // 3 density "peaks" (flame bundles) that rotate with particleAngle
+            final int WAVE_PEAKS = 3;
+
+            for (int i = 0; i < samples; i++) {
+                double angle = 2.0 * Math.PI * i / samples;
+
+                // Density wave: valley=0.4, peak=1.0, rotates with particleAngle
+                // sin → 0..1 → remap to 0.4..1.0, then sharpen peaks
+                double wave = (Math.sin(angle * WAVE_PEAKS - particleAngle * WAVE_PEAKS) + 1.0) / 2.0;
+                double density = 0.4 + 0.6 * Math.pow(wave, 2.5);
+
+                // Stochastic sampling
+                if (Math.random() > density) continue;
+
+                // Position: radial jitter + ~0.2 random XZ offset
+                double r = radius + (Math.random() - 0.5) * 0.3;
+                double x = center.getX() + r * Math.cos(angle) + (Math.random() - 0.5) * 0.4;
+                double z = center.getZ() + r * Math.sin(angle) + (Math.random() - 0.5) * 0.4;
+                double y = center.getY() + 0.05;
+
+                // Y speed proportional to density (peak = fast, valley = slow) + randomness
+                double speedY = (0.05 + density * 0.12) + Math.random() * 0.06;
+
+                // XZ drift: outward direction + random lateral scatter
+                double outward = 0.1 + Math.random() * 0.1;
+                double dirX = Math.cos(angle) * outward + (Math.random() - 0.5) * 0.15;
+                double dirY = 3.0;
+                double dirZ = Math.sin(angle) * outward + (Math.random() - 0.5) * 0.15;
+
+                double len = Math.sqrt(dirX * dirX + dirY * dirY + dirZ * dirZ);
+                center.getWorld().spawnParticle(
+                        Math.random()<0.7?Particle.ELECTRIC_SPARK:Particle.FIREWORK,
+                        new Location(center.getWorld(), x, y, z),
+                        0,
+                        dirX / len,
+                        dirY / len,
+                        dirZ / len,
+                        speedY
+                );
+            }
+        }
+    }
     private static void showParticleEffect(Player player, double power,Location center) {
         // Get Jplayer to check simple_domain_type
         Jplayer jplayer = getJplayer(player);
         if (jplayer == null) {
             return;
         }
-
         if(jplayer.simple_domain_type) {
-            // Calculate radius based on power (0-100% → 0-MAX_RADIUS blocks)
-            double radius = (power / (MAX_POWER - EXPANSION_DELAY)) * MAX_RADIUS;
 
-            // Rotate angle for spinning effect
-            particleAngle += Math.PI / 24.0; // Rotate ~9 degrees per tick
-            if (particleAngle >= 2 * Math.PI) {
-                particleAngle -= 2 * Math.PI;
-            }
-
-            // Draw circle with white firework particles
-            int particleCount = 8; // More particles for larger circles (minimum 16)
-
-            for (int i = 0; i < particleCount; i++) {
-                double angle = particleAngle + (2 * Math.PI * i / particleCount);
-                double x = center.getX() + radius * Math.cos(angle);
-                double z = center.getZ() + radius * Math.sin(angle);
-                double y = center.getY() + 0.1; // Slightly above ground
-
-                Location particleLoc = new Location(center.getWorld(), x, y, z);
-
-                // Spawn white firework particle (no velocity, no offset)
-                center.getWorld().spawnParticle(
-                        Particle.FIREWORK,
-                        particleLoc,
-                        0,    // count
-                        0.1,  // dirX
-                        0.1,  // dirY
-                        0.1,  // dirZ
-                        0.1   // extra
-                );
-            }
         }
         else {
             // 미허갈롱 타입 - 구형 보호막 파티클
