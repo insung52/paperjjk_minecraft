@@ -24,11 +24,10 @@ public class Jobject {
     public boolean can_simple_domain = false;
     public boolean simple_domain_type = true;
     public Player player;
-    public double black_flash_num=0.1;
-    public double basic_black_flash_num=0.1;
-    public double zone_black_flash_num = 0.9;
-    public int zone_count = 0;
-    public boolean zone = false;
+    public double black_flash_num=0.01;
+    public double basic_black_flash_num=0.01;
+    public double zone_black_flash_num = 0.4;
+    public int black_flash_count = 0;
     public int black_flash_tick=0;
     public int max_curseenergy=5;
     public int curseenergy=1;
@@ -76,14 +75,12 @@ public class Jobject {
         if (this instanceof Jplayer jplayer && reversecursing) {
             if(player.isSneaking()){
                 if (curseenergy > 0) {
-
-
                     if(tick%10==0){
                         jplayer.player.getWorld().playSound(jplayer.player, Sound.ENTITY_GENERIC_EXTINGUISH_FIRE, 0.3F, 0.7f);
                         jplayer.player.getWorld().playSound(jplayer.player, Sound.BLOCK_CONDUIT_AMBIENT, 0.3F, 1.0f);
                     }
                     jplayer.player.getWorld().spawnParticle(Particle.ENTITY_EFFECT, jplayer.player.getLocation(), 10, 0.5, 0.5, 0.5, 0.5,Color.WHITE);
-                    jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,1, 1));
+
                     jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.INSTANT_HEALTH,1, (int) Math.pow(jplayer.getremaincurrent(),0.1)));
                     List<PotionEffect> potionEffects = (List<PotionEffect>) jplayer.player.getActivePotionEffects();
                     for (PotionEffect potionEffect : potionEffects) {
@@ -94,6 +91,7 @@ public class Jobject {
                         }
                     }
                     jplayer.curseenergy -= jplayer.getremaincurrent();
+                    jplayer.player.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,20, 1));
                 }
             }
             else {
@@ -103,18 +101,19 @@ public class Jobject {
     }
     public void black_flash(){
         black_flash_tick--;
+
         if(black_flash_tick>=20*59){
             double tick = (20*60 - black_flash_tick)*1.0;
 
             Particle.Spell spell = new Particle.Spell(Color.BLACK,1.0f);
-            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 10*zone_count, tick, tick, tick, 0.5,spell);
+            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 40* black_flash_count, tick, tick, tick, 0.5,spell);
             spell = new Particle.Spell(Color.fromARGB(255, 128, 0, 0),1.0f);
-            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 10*zone_count, tick, tick, tick, 0.5,spell);
+            user.getWorld().spawnParticle(Particle.INSTANT_EFFECT, user.getLocation(), 40* black_flash_count, tick, tick, tick, 0.5,spell);
 
             user.getWorld().spawnParticle(
                     Particle.FLASH,
                     user.getLocation(),
-                    3,
+                    3* black_flash_count,
                     tick, tick, tick,
                     10.0,
                     Color.fromARGB(128, 255, 50, 50)
@@ -122,7 +121,7 @@ public class Jobject {
             user.getWorld().spawnParticle(
                     Particle.FLASH,
                     user.getLocation(),
-                    3,
+                    3* black_flash_count,
                     tick, tick, tick,
                     10.0,
                     Color.fromARGB(128, 255, 255, 255)
@@ -137,6 +136,9 @@ public class Jobject {
         user.getWorld().spawnParticle(Particle.ENTITY_EFFECT, user.getLocation(), 1, 0.5, 0.5, 0.5, 0.5,Color.BLACK);
         if(black_flash_num>basic_black_flash_num){
             black_flash_num = Math.max(black_flash_num-0.002,basic_black_flash_num);
+        }
+        else {
+            black_flash_count =0;
         }
         //PaperJJK.log(black_flash_num + "");
         if(black_flash_num>basic_black_flash_num&&black_flash_tick%55==40){

@@ -168,7 +168,7 @@ public final class PaperJJK extends JavaPlugin {
         if(attacker_jobject!=null && attacker.getEquipment().getItemInMainHand().isEmpty()){
             if(attacker_jobject.curseenergy>200){
                 if(Math.random()<=attacker_jobject.black_flash_num){
-                    attacker_jobject.zone_count++;
+                    attacker_jobject.black_flash_count++;
                     attacker_jobject.black_flash_tick=20*60;
                     attacker_jobject.black_flash_num = attacker_jobject.zone_black_flash_num+(Math.random()-0.5)*0.1;
                     attacker_jobject.curseenergy+=(attacker_jobject.max_curseenergy-attacker_jobject.curseenergy)*0.2;
@@ -180,7 +180,7 @@ public final class PaperJJK extends JavaPlugin {
                     attacker.getWorld().spawnParticle(
                             Particle.FLASH,
                             attacker.getEyeLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.7)),
-                            10+attacker_jobject.zone_count*5,
+                            10+attacker_jobject.black_flash_count *5,
                             2.0, 2.0, 2.0,
                             10.0,
                             Color.fromARGB(128, 255, 255, 255)
@@ -188,7 +188,7 @@ public final class PaperJJK extends JavaPlugin {
                     attacker.getWorld().spawnParticle(
                             Particle.FLASH,
                             attacker.getEyeLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.7)),
-                            1+attacker_jobject.zone_count,
+                            1+attacker_jobject.black_flash_count,
                             0.5, 0.5, 0.5,
                             1.0,
                             Color.fromARGB(128, 255, 255, 255)
@@ -196,7 +196,7 @@ public final class PaperJJK extends JavaPlugin {
                     attacker.getWorld().spawnParticle(
                             Particle.FLASH,
                             attacker.getEyeLocation().add(attacker.getEyeLocation().getDirection().multiply(distances*0.7)),
-                            10+attacker_jobject.zone_count*5,
+                            10+attacker_jobject.black_flash_count *5,
                             2.0, 2.0, 2.0,
                             10.0,
                             Color.fromARGB(128, 255, 50, 50)
@@ -204,7 +204,7 @@ public final class PaperJJK extends JavaPlugin {
                     return true;
                 }
                 else {
-                    attacker_jobject.zone_count=0;
+                    attacker_jobject.black_flash_count =0;
                     attacker_jobject.black_flash_num = attacker_jobject.basic_black_flash_num;
                 }
             }
