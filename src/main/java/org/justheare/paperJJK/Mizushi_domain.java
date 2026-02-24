@@ -183,7 +183,6 @@ class Mizushi_effector extends Jdomain_effector{
     boolean completeSent = false;
     Particle.DustOptions dark_dust2=new Particle.DustOptions(Color.fromRGB(60,0,0), 1F);
     public void effect_tick(){
-
         if(domain.no_border_on){
             // Send START packet when expansion begins
             if(!startPacketSent && domain.current_radius >= 1) {
@@ -425,7 +424,7 @@ class Mizushi_effector extends Jdomain_effector{
                                 Jobject jobject = PaperJJK.getjobject(living);
                                 if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
                                     // Simple domain is active - ignore sure-hit effect
-                                    SimpleDomainManager.decreasePower(player, domain.level*4);
+                                    breakSimpleDomain(player,4);
                                     continue;
                                 }
                                 Mizushi mizushi = new Mizushi(domain.owner,"","",true,1, (int) (Math.random() * 7)+5,'a');
@@ -467,22 +466,20 @@ class Mizushi_effector extends Jdomain_effector{
                             Jobject jobject = PaperJJK.getjobject(living);
                             if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
                                 // Simple domain is active - ignore sure-hit effect
-                                SimpleDomainManager.decreasePower(player, domain.level*4);
+                                breakSimpleDomain(player,4);
                                 tee.add(living);
                                 continue;
                             }
                             if(jobject!=null && jobject.naturaltech.equals("physical_gifted")){
                                 continue;
                             }
-                            if(living.getLocation().distance(domain.location)< domain.range){
-                                Mizushi mizushi = new Mizushi(domain.owner,"","",true,1,20,'a');
-                                mizushi.show=false;
-                                mizushi.sure_hit=true;
-                                mizushi.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin,mizushi,1,1);
-                                domain.owner.jujuts.add(mizushi);
-                                mizushi.j_entities.add(living);
-                                mizushi.direction = new Vector(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
-                            }
+                            Mizushi mizushi = new Mizushi(domain.owner,"","",true,1,20,'a');
+                            mizushi.show=false;
+                            mizushi.sure_hit=true;
+                            mizushi.tasknum = Bukkit.getScheduler().scheduleSyncRepeatingTask(PaperJJK.jjkplugin,mizushi,1,1);
+                            domain.owner.jujuts.add(mizushi);
+                            mizushi.j_entities.add(living);
+                            mizushi.direction = new Vector(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
                         }
                         tee.add(living);
                     }

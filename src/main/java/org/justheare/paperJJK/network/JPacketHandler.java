@@ -601,12 +601,12 @@ public class JPacketHandler implements PluginMessageListener {
     private void adjustInfinityDistance(Infinity infinity, byte scrollDelta, String skillId) {
         if (skillId.equals("infinity_ao")) {
             // ao: adjust distance (1 to 20 blocks)
-            double step = 0.5;
+            double step = 1;
             infinity.distance += scrollDelta * step;
 
             // Clamp distance
             if (infinity.distance < 1) infinity.distance = 1;
-            if (infinity.distance > 20) infinity.distance = 20;
+            if (infinity.distance > 50) infinity.distance = 50;
         } else if (skillId.equals("infinity_aka")) {
             // aka: toggle direction (1 for forward, -1 for backward)
             // Use distance as direction multiplier

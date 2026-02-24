@@ -49,7 +49,7 @@ public class Infinity extends Jujut{
         j_entities_num=new ArrayList<Integer>();
         max_power=100;
         fixable=true;
-        distance=1;
+        distance=3;
         this.time = 999999;
         if(rct) {
             speed=1;
@@ -693,7 +693,7 @@ public class Infinity extends Jujut{
                                 ).multiply(push_power)
                         );
                     }
-                    if(time%4==0) {
+                    if(Math.random()<0.25) {
                         if (tentity instanceof LivingEntity living){
                             if (d_vector.length() <= 1 + Math.pow(use_power, 0.3)) {
                                 jobject.damaget(living, 'j', Math.pow(use_power, 0.3), false,"ao",false);

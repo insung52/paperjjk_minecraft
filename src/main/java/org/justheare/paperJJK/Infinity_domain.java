@@ -47,7 +47,11 @@ class Infinity_effector extends Jdomain_effector{
         super(domain);
         this.domain=domain;
     }
+
+
+
     public void effect_tick(){
+        //super.effect_tick();
         if(tick==5){
             domain.location.getWorld().playSound(domain.location, Sound.BLOCK_PORTAL_TRAVEL, SoundCategory.BLOCKS, 2F, 0.7F);
             domain.location.getWorld().playSound(domain.location, Sound.BLOCK_PORTAL_TRIGGER, SoundCategory.BLOCKS,2F, 1.3F);
@@ -73,7 +77,7 @@ class Infinity_effector extends Jdomain_effector{
                             // Check if simple domain is active (blocks sure-hit effect)
                             if(jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
                                 // Simple domain is active - ignore sure-hit effect
-                                SimpleDomainManager.decreasePower(player, domain.level);
+                                breakSimpleDomain(player,1);
                                 tee.add(living);
                                 continue;
                             }

@@ -9,6 +9,7 @@ import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.LivingEntity;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
@@ -482,8 +483,71 @@ class Jdomain_effector implements Runnable{
         this.domain=domain;
         tick=0;
     }
+    /*
+    public void difDomainTargets(ArrayList<Entity> newTargets){
+        for(Entity newTarget : newTargets){
+            if(newTarget instanceof LivingEntity living){
+                Jobject jobject = PaperJJK.getjobject(living);
+                if(jobject!=null){
 
+                }
+            }
+        }
+    }
+    public void getTargetInRange(){
+        ArrayList<Entity> tentities = (ArrayList<Entity>) domain.nb_location.getNearbyEntities(domain.nb_range,domain.nb_range,domain.nb_range);
+        ArrayList<Entity> tee=new ArrayList<>();
+        for(Entity living : tentities) {
+            if (living.equals(domain.owner.user)) {
+                continue;
+            }
+            if (living instanceof BlockDisplay) {
+                continue;
+            }
+            if (living.getLocation().distance(domain.nb_location) < domain.current_radius) {
+                Jobject jobject = PaperJJK.getjobject(living);
+                if (jobject != null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)) {
+                    // Simple domain is active - ignore sure-hit effect
+                    SimpleDomainManager.decreasePower(player, domain.level * 4);
+                    tee.add(living);
+                    continue;
+                }
+                tee.add(living);
+            }
+            difDomainTargets(tee);
+        }
+    }
+    public void getLivingTargetInRange(){
+        ArrayList<LivingEntity> tentities = (ArrayList<LivingEntity>) domain.location.getNearbyLivingEntities(domain.range+1);
+        ArrayList<Entity> tee=new ArrayList<>();
+        for(LivingEntity living : tentities) {
+            if (living.equals(domain.owner.user)) {
+                continue;
+            }
+            if (living instanceof BlockDisplay) {
+                continue;
+            }
+            if (living.getLocation().distance(domain.location) <= domain.range + 1) {
 
+                Jobject jobject = PaperJJK.getjobject(living);
+                if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
+                    // Simple domain is active - ignore sure-hit effect
+                    SimpleDomainManager.decreasePower(player, domain.level*4);
+                    tee.add(living);
+                    continue;
+                }
+                if(jobject!=null && jobject.naturaltech.equals("physical_gifted")){
+                    continue;
+                }
+                tee.add(living);
+            }
+            difDomainTargets(tee);
+        }
+    }*/
+    public void breakSimpleDomain(Player target,  int mul){
+        // Todo : decreasePower
+        SimpleDomainManager.decreasePower(target, domain.level*mul);
+    }
     public void effect_tick(){
         if(domain.no_border_on){
             if(domain.current_radius< domain.nb_range){
