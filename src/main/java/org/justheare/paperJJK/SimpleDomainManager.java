@@ -24,10 +24,10 @@ public class SimpleDomainManager {
 
     // Configuration
     private static final double CHARGE_RATE = 10.0;    // Power increase per tick when charging (1% per tick = 5 seconds to 100%)
-    private static final double BASE_DECAY_RATE = 0.5; // Base power decrease per tick when not charging (0.5% per tick = 10 seconds to 0%)
-    private static final double MAX_RADIUS = 7.0;    // Maximum circle radius at 100% power (blocks)
+    private static final double BASE_DECAY_RATE = 0.8; // Base power decrease per tick when not charging (0.5% per tick = 10 seconds to 0%)
+    private static final double MAX_RADIUS = 10.0;    // Maximum circle radius at 100% power (blocks)
     private static final int EXPANSION_DELAY = 100;
-
+    private static final int MAX_POWER = 230;
     // Particle animation
     private static double particleAngle = 0.0; // Current rotation angle for particle circle
     /**
@@ -99,8 +99,8 @@ public class SimpleDomainManager {
                     data.charging = false;
                     JPacketSender.sendSimpleDomainChargingEnd(player, data.power);
                 } else {
-                    // Charging: Increase power (max = EXPANSION_DELAY * 2 for two-phase design)
-                    data.power = Math.min((double) EXPANSION_DELAY * 2, data.power + CHARGE_RATE);
+                    // Charging: Increase power
+                    data.power = Math.min(MAX_POWER, data.power + CHARGE_RATE);
                     Jplayer jplayer = getJplayer(player);
                     if(jplayer!=null){
                         jplayer.curseenergy -= (int) (data.power/10);
@@ -202,7 +202,7 @@ public class SimpleDomainManager {
 
         if(jplayer.simple_domain_type) {
             // Calculate radius based on power (0-100% → 0-MAX_RADIUS blocks)
-            double radius = (power / 100.0) * MAX_RADIUS;
+            double radius = (power / MAX_POWER) * MAX_RADIUS;
 
             // Rotate angle for spinning effect
             particleAngle += Math.PI / 24.0; // Rotate ~9 degrees per tick
@@ -236,7 +236,7 @@ public class SimpleDomainManager {
         else {
             // 미허갈롱 타입 - 구형 보호막 파티클
             // Calculate radius based on power (0-100% → 0-MAX_RADIUS blocks)
-            double radius = (power / 100.0) * MAX_RADIUS / 3;
+            double radius = (power / MAX_POWER) * MAX_RADIUS / 3;
 
             // Draw sphere with white particles
             //Location center = player.getLocation().add(0, 1, 0); // Center at player's chest height
