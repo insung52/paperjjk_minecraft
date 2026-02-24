@@ -8,6 +8,8 @@ import org.bukkit.block.Block;
 import org.bukkit.block.BlockState;
 import org.bukkit.block.Chest;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
@@ -27,6 +29,7 @@ public class Jdomain_innate extends Jdomain{
     Jdomain_expand attack_target=null;
     Jobject attacker;
     ArrayList<LivingEntity> domain_targets;
+    ArrayList<Entity> nb_domain_targets;
     public boolean no_border_on=false;
     Location nb_location;
     boolean onground=false;
@@ -483,7 +486,7 @@ class Jdomain_effector implements Runnable{
         this.domain=domain;
         tick=0;
     }
-    /*
+
     public void difDomainTargets(ArrayList<Entity> newTargets){
         for(Entity newTarget : newTargets){
             if(newTarget instanceof LivingEntity living){
@@ -505,21 +508,22 @@ class Jdomain_effector implements Runnable{
                 continue;
             }
             if (living.getLocation().distance(domain.nb_location) < domain.current_radius) {
+                /*
                 Jobject jobject = PaperJJK.getjobject(living);
                 if (jobject != null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)) {
                     // Simple domain is active - ignore sure-hit effect
                     SimpleDomainManager.decreasePower(player, domain.level * 4);
                     tee.add(living);
                     continue;
-                }
+                }*/
                 tee.add(living);
             }
-            difDomainTargets(tee);
         }
+        domain.nb_domain_targets = tee;
     }
     public void getLivingTargetInRange(){
         ArrayList<LivingEntity> tentities = (ArrayList<LivingEntity>) domain.location.getNearbyLivingEntities(domain.range+1);
-        ArrayList<Entity> tee=new ArrayList<>();
+        ArrayList<LivingEntity> tee=new ArrayList<>();
         for(LivingEntity living : tentities) {
             if (living.equals(domain.owner.user)) {
                 continue;
@@ -528,53 +532,32 @@ class Jdomain_effector implements Runnable{
                 continue;
             }
             if (living.getLocation().distance(domain.location) <= domain.range + 1) {
-
                 Jobject jobject = PaperJJK.getjobject(living);
+                /*
                 if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
                     // Simple domain is active - ignore sure-hit effect
                     SimpleDomainManager.decreasePower(player, domain.level*4);
                     tee.add(living);
                     continue;
-                }
+                }*/
                 if(jobject!=null && jobject.naturaltech.equals("physical_gifted")){
                     continue;
                 }
                 tee.add(living);
             }
-            difDomainTargets(tee);
         }
-    }*/
+        domain.domain_targets = tee;
+    }
     public void breakSimpleDomain(Player target,  int mul){
         // Todo : decreasePower
         SimpleDomainManager.decreasePower(target, domain.level*mul);
     }
     public void effect_tick(){
         if(domain.no_border_on){
-            if(domain.current_radius< domain.nb_range){
-                domain.current_radius++;
-            }
-            ArrayList<LivingEntity> tentities = (ArrayList<LivingEntity>) domain.nb_location.getNearbyLivingEntities(domain.current_radius);
-            for(LivingEntity living : tentities){
-                if(living.getLocation().distance(domain.nb_location)>= domain.nb_range){
-                    continue;
-                }
-                if(living.equals(domain.owner.user)){
-                    living.addPotionEffect(new PotionEffect(PotionEffectType.SPEED,5,2));
-                }
-                else {
-                    living.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,5,0));
-                }
-            }
+            getTargetInRange();
         }
         else if(domain.attacker==null){
-            for(LivingEntity living : domain.domain_targets){
-                if(living.equals(domain.owner.user)){
-                    living.addPotionEffect(new PotionEffect(PotionEffectType.STRENGTH,5,2));
-                }
-                else {
-                    living.addPotionEffect(new PotionEffect(PotionEffectType.SLOWNESS,5,0));
-                }
-            }
+            getLivingTargetInRange();
         }
     }
     @Override

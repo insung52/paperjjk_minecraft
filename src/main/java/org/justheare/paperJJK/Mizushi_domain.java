@@ -183,6 +183,7 @@ class Mizushi_effector extends Jdomain_effector{
     boolean completeSent = false;
     Particle.DustOptions dark_dust2=new Particle.DustOptions(Color.fromRGB(60,0,0), 1F);
     public void effect_tick(){
+        super.effect_tick();
         if(domain.no_border_on){
             // Send START packet when expansion begins
             if(!startPacketSent && domain.current_radius >= 1) {
@@ -411,22 +412,16 @@ class Mizushi_effector extends Jdomain_effector{
                             ss_location.getWorld().playSound(ss_location, Sound.ITEM_TRIDENT_RIPTIDE_3, SoundCategory.PLAYERS, 0.5F, 0.7F);
                         }
                     }
-                    if(tick%10==0){
-                        ArrayList<Entity> tentities = (ArrayList<Entity>) domain.nb_location.getNearbyEntities(domain.nb_range,domain.nb_range,domain.nb_range);
-                        for(Entity living : tentities){
-                            if(living.equals(domain.owner.user)){
+                    //ArrayList<Entity> tentities = (ArrayList<Entity>) domain.nb_location.getNearbyEntities(domain.nb_range,domain.nb_range,domain.nb_range);
+                    for(Entity living : domain.nb_domain_targets){
+                        if(living.getLocation().distance(domain.nb_location)< domain.current_radius){
+                            Jobject jobject = PaperJJK.getjobject(living);
+                            if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
+                                // Simple domain is active - ignore sure-hit effect
+                                breakSimpleDomain(player,1);
                                 continue;
                             }
-                            if(living instanceof BlockDisplay){
-                                continue;
-                            }
-                            if(living.getLocation().distance(domain.nb_location)< domain.current_radius){
-                                Jobject jobject = PaperJJK.getjobject(living);
-                                if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
-                                    // Simple domain is active - ignore sure-hit effect
-                                    breakSimpleDomain(player,4);
-                                    continue;
-                                }
+                            if(tick%4==0){
                                 Mizushi mizushi = new Mizushi(domain.owner,"","",true,1, (int) (Math.random() * 7)+5,'a');
                                 mizushi.show=false;
                                 mizushi.sure_hit=true;
@@ -435,8 +430,8 @@ class Mizushi_effector extends Jdomain_effector{
                                 mizushi.j_entities.add(living);
                                 mizushi.direction = new Vector(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
                             }
-
                         }
+
                     }
                 }
             }
@@ -451,28 +446,25 @@ class Mizushi_effector extends Jdomain_effector{
         }
 
         else if(domain.attacker==null){
-            if(tick%10==0){
-                ArrayList<LivingEntity> tentities = (ArrayList<LivingEntity>) domain.location.getNearbyLivingEntities(domain.range+1);
-                ArrayList<LivingEntity> tee=new ArrayList<>();
-                for(LivingEntity living : tentities){
-                    if(living.getLocation().distance(domain.location)<= domain.range+1){
-                        if(living.equals(domain.owner.user)){
+            for(LivingEntity living : domain.domain_targets){
+                if(living.getLocation().distance(domain.location)<= domain.range+1){
+                    if(living.equals(domain.owner.user)){
+                        continue;
+                    }
+                    else {
+                        if(living instanceof BlockDisplay){
                             continue;
                         }
-                        else {
-                            if(living instanceof BlockDisplay){
-                                continue;
-                            }
-                            Jobject jobject = PaperJJK.getjobject(living);
-                            if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
-                                // Simple domain is active - ignore sure-hit effect
-                                breakSimpleDomain(player,4);
-                                tee.add(living);
-                                continue;
-                            }
-                            if(jobject!=null && jobject.naturaltech.equals("physical_gifted")){
-                                continue;
-                            }
+                        Jobject jobject = PaperJJK.getjobject(living);
+                        if(jobject!=null && jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
+                            // Simple domain is active - ignore sure-hit effect
+                            breakSimpleDomain(player,1);
+                            continue;
+                        }
+                        if(jobject!=null && jobject.naturaltech.equals("physical_gifted")){
+                            continue;
+                        }
+                        if(tick%5==0) {
                             Mizushi mizushi = new Mizushi(domain.owner,"","",true,1,20,'a');
                             mizushi.show=false;
                             mizushi.sure_hit=true;
@@ -481,12 +473,10 @@ class Mizushi_effector extends Jdomain_effector{
                             mizushi.j_entities.add(living);
                             mizushi.direction = new Vector(Math.random()-0.5,Math.random()-0.5,Math.random()-0.5).normalize();
                         }
-                        tee.add(living);
+
                     }
                 }
-                domain.domain_targets=tee;
             }
-
         }
     }
     Mizushi_effector(Mizushi_domain domain) {

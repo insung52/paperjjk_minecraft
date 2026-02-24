@@ -10,8 +10,6 @@ import org.bukkit.entity.Player;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
 
-import java.util.ArrayList;
-
 public class Infinity_domain extends Jdomain_innate{
     public Infinity_domain(Jobject owner) {
         super(owner);
@@ -51,7 +49,7 @@ class Infinity_effector extends Jdomain_effector{
 
 
     public void effect_tick(){
-        //super.effect_tick();
+        super.effect_tick();
         if(tick==5){
             domain.location.getWorld().playSound(domain.location, Sound.BLOCK_PORTAL_TRAVEL, SoundCategory.BLOCKS, 2F, 0.7F);
             domain.location.getWorld().playSound(domain.location, Sound.BLOCK_PORTAL_TRIGGER, SoundCategory.BLOCKS,2F, 1.3F);
@@ -60,9 +58,7 @@ class Infinity_effector extends Jdomain_effector{
             domain.location.getWorld().playSound(domain.location, Sound.AMBIENT_BASALT_DELTAS_LOOP, SoundCategory.BLOCKS, 2F, 1.5F);
         }
         if(domain.attacker==null){
-            ArrayList<LivingEntity> tentities = (ArrayList<LivingEntity>) domain.location.getNearbyLivingEntities(domain.range+1);
-            ArrayList<LivingEntity> tee=new ArrayList<>();
-            for(LivingEntity living : tentities){
+            for(LivingEntity living : domain.domain_targets){
                 if(living.getLocation().distance(domain.location)<= domain.range+1){
                     living.addPotionEffect(new PotionEffect(PotionEffectType.NIGHT_VISION,5,2));
                     if(living.equals(domain.owner.user)){
@@ -78,7 +74,6 @@ class Infinity_effector extends Jdomain_effector{
                             if(jobject.user instanceof Player player && SimpleDomainManager.isActive(player)){
                                 // Simple domain is active - ignore sure-hit effect
                                 breakSimpleDomain(player,1);
-                                tee.add(living);
                                 continue;
                             }
                             if(jobject.naturaltech.equals("physical_gifted")){
@@ -88,7 +83,6 @@ class Infinity_effector extends Jdomain_effector{
                             if(jobject.naturaltech.equals("mahoraga")&&jobject.jujuts.get(0) instanceof Mahoraga mahoraga){
                                 if(mahoraga.pre_adapt("infinity_domain","curse",1)<0){
                                     jobject.infinity_stun_tick=0;
-                                    tee.add(living);
                                     continue;
                                 }
                             }
@@ -107,10 +101,8 @@ class Infinity_effector extends Jdomain_effector{
                             living.setAI(false);
                         }
                     }
-                    tee.add(living);
                 }
             }
-            domain.domain_targets=tee;
         }
     }
 }
